@@ -2,7 +2,6 @@ import unittest
 from warnings import warn
 
 import saftig
-import saftig.external
 
 from .test_filters import TestFilter
 

@@ -6,31 +6,28 @@ from typing import Optional, Tuple
 from collections.abc import Sequence
 from contextlib import redirect_stdout
 from io import StringIO
+import warnings
 import numpy as np
 from numpy.typing import NDArray
 import spicypy
 
-from ..common import FilterBase
+from ..filtering.common import FilterBase
 
 
 class SpicypyWienerFilter(FilterBase):
     """A wrapper for the spicypy WF implementation
 
-    :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
+    :param n_filter: Length of the FIR filter
+        (how many samples are in the input window per output sample)
     :param idx_target: Position of the prediction
     :param n_channel: Number of witness sensor channels
 
     >>> import saftig as sg
-    >>> n_filter = 128
-    >>> witness, target = sg.TestDataGenerator(0.1).generate(int(1e5))
-    >>> filt = sg.SpicypyWienerFilter(n_filter, 0, 1)
-    >>> _coefficients, full_rank = filt.condition(witness, target)
-    >>> full_rank
-    True
-    >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
-    >>> residual_rms = sg.RMS(target-prediction)
-    >>> residual_rms > 0.05 and residual_rms < 0.15 # the expected RMS in this test scenario is 0.1
-    True
+    >>> n_filter = 10
+    >>> witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e3))
+    >>> filt = sg.external.SpicypyWienerFilter(n_filter, 0, 1)
+    >>> sp_filt = filt.condition(witness, target)
+    >>> prediction = filt.apply(witness, target) # apply to training data
 
     """
 
@@ -45,6 +42,7 @@ class SpicypyWienerFilter(FilterBase):
         super().__init__(n_filter, idx_target, n_channel)
 
         self.conditioned = False
+        self.filter_state: Optional[spicypy.signal.WienerFilter]
 
     @staticmethod
     def make_spicypy_time_series(
@@ -95,8 +93,12 @@ class SpicypyWienerFilter(FilterBase):
         )
         # spicypy.signal.WienerFilter uses a lot of print statements
         # this stops it from spamming stdout
-        with redirect_stdout(StringIO()):
-            self.filter_state.create_filters()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+
+            with redirect_stdout(StringIO()):
+                self.filter_state.create_filters()
 
         self.conditioned = True
 

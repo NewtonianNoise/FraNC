@@ -138,13 +138,13 @@ class WienerFilter(FilterBase):
 
     >>> import saftig as sg
     >>> n_filter = 128
-    >>> witness, target = sg.TestDataGenerator(0.1).generate(int(1e5))
-    >>> filt = sg.WienerFilter(n_filter, 0, 1)
+    >>> witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e5))
+    >>> filt = sg.filtering.WienerFilter(n_filter, 0, 1)
     >>> _coefficients, full_rank = filt.condition(witness, target)
     >>> full_rank
     True
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
-    >>> residual_rms = sg.RMS(target-prediction)
+    >>> residual_rms = sg.evaluation.RMS(target-prediction)
     >>> residual_rms > 0.05 and residual_rms < 0.15 # the expected RMS in this test scenario is 0.1
     True
 

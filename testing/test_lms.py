@@ -19,11 +19,11 @@ class TestLMSFilter(unittest.TestCase, TestFilter):
             {"normalized": True, "coefficient_clipping": 2},
             {"normalized": False, "step_scale": 0.001},
         ]
-        self.set_target(sg.LMSFilter, test_configurations)
+        self.set_target(sg.filtering.LMSFilter, test_configurations)
 
     def test_update_state_setting(self):
         """check that the filter reaches a WF-Like performance on a simple static test case"""
-        witness, target = sg.TestDataGenerator([0.1] * 2).generate(int(2e4))
+        witness, target = sg.evaluation.TestDataGenerator([0.1] * 2).generate(int(2e4))
 
         for filt in self.instantiate_filters(n_filter=32, n_channel=2):
             # check for no changes when False

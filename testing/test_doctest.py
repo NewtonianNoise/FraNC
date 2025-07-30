@@ -1,19 +1,18 @@
 import doctest
-import saftig as sg
-
-module_list = [
-    sg.common,
-    sg.evaluation,
-    sg.wf,
-    sg.uwf,
-    sg.lms,
-    sg.lms_c,
-    sg.polylms,
-]
+import saftig
 
 
 def load_tests(_loader, tests, _ignore):
     """load doctests as unittests"""
-    for module in module_list:
-        tests.addTests(doctest.DocTestSuite(module))
+    tests.addTests(doctest.DocTestSuite(saftig))
+
+    for submodule_name in dir(saftig):
+        submodule = getattr(saftig, submodule_name)
+        if "__file__" in dir(submodule):
+            tests.addTests(doctest.DocTestSuite(submodule))
+
+            for subsubmodule_name in dir(submodule):
+                subsubmodule = getattr(submodule, subsubmodule_name)
+                if "__file__" in dir(subsubmodule):
+                    tests.addTests(doctest.DocTestSuite(subsubmodule))
     return tests

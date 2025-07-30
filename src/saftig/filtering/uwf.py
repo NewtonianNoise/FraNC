@@ -23,10 +23,10 @@ class UpdatingWienerFilter(FilterBase):
 
     >>> import saftig as sg
     >>> n_filter = 128
-    >>> witness, target = sg.TestDataGenerator(0.1).generate(int(1e5))
-    >>> filt = sg.UpdatingWienerFilter(n_filter, 0, 1, context_pre=20*n_filter, context_post=20*n_filter)
+    >>> witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e5))
+    >>> filt = sg.filtering.UpdatingWienerFilter(n_filter, 0, 1, context_pre=20*n_filter, context_post=20*n_filter)
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
-    >>> residual_rms = sg.RMS(target-prediction)
+    >>> residual_rms = sg.evaluation.RMS(target-prediction)
     >>> residual_rms > 0.05 and residual_rms < 0.15 # the expected RMS in this test scenario is 0.1
     True
 

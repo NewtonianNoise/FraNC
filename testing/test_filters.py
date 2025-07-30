@@ -12,7 +12,7 @@ class TestFilter:
     __test__ = False
 
     # The to-be-tested filter class
-    target_filter: type[sg.FilterBase]
+    target_filter: type[sg.filtering.FilterBase]
     # to-be-tested configurations
     default_filter_parameters: list = [{}]
 
@@ -39,7 +39,7 @@ class TestFilter:
 
     def instantiate_filters(
         self, n_filter=128, idx_target=0, n_channel=1
-    ) -> Iterable[sg.common.FilterBase]:
+    ) -> Iterable[sg.filtering.FilterBase]:
         """instantiate the target filter for all configurations"""
         for parameters in self.default_filter_parameters:
             yield self.target_filter(n_filter, idx_target, n_channel, **parameters)
@@ -47,7 +47,7 @@ class TestFilter:
     def test_exception_on_missshaped_input(self):
         """Check that matching exceptions are thrown for obviously wrong input shapes"""
         n_filter = 128
-        witness, target = sg.TestDataGenerator(0.1).generate(int(1e4))
+        witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e4))
 
         for filt in self.instantiate_filters(n_filter):
             with warnings.catch_warnings():  # warnings are expected here
@@ -59,7 +59,7 @@ class TestFilter:
     def test_acceptance_of_minimum_input_length(self):
         """Check that the filter works with the minimum input length of two filter lengths"""
         n_filter = 128
-        witness, target = sg.TestDataGenerator(0.1).generate(n_filter * 2)
+        witness, target = sg.evaluation.TestDataGenerator(0.1).generate(n_filter * 2)
 
         for filt in self.instantiate_filters(n_filter):
             with warnings.catch_warnings():  # warnings are expected here
@@ -70,7 +70,7 @@ class TestFilter:
     def test_acceptance_of_lists(self):
         """Check that the filter accepts inputs that are not np.ndarray"""
         n_filter = 128
-        witness, target = sg.TestDataGenerator(0.1).generate(n_filter * 2)
+        witness, target = sg.evaluation.TestDataGenerator(0.1).generate(n_filter * 2)
 
         for filt in self.instantiate_filters(n_filter):
             with warnings.catch_warnings():  # warnings are expected here
@@ -81,7 +81,7 @@ class TestFilter:
     def test_output_shapes(self):
         """Check output shapes"""
         n_filter = 128
-        witness, target = sg.TestDataGenerator(0.1).generate(int(1e4))
+        witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e4))
 
         for filt in self.instantiate_filters(n_filter):
             with warnings.catch_warnings():  # warnings are expected here
@@ -99,7 +99,7 @@ class TestFilter:
     def test_apply_on_unconditioned_filter(self):
         """Check that calling apply() on an unconditioned filter either works or throws an RuntimeError"""
         n_filter = 128
-        witness, target = sg.TestDataGenerator(0.1).generate(int(1e4))
+        witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e4))
 
         for filt in self.instantiate_filters(n_filter):
             try:
@@ -111,7 +111,9 @@ class TestFilter:
         """Check that the filter reaches a WF-Like performance on a simple static test case"""
         for noise_level, acceptable_residual in self.expected_performance.items():
             n_filter = 32
-            witness, target = sg.TestDataGenerator([noise_level] * 2).generate(int(2e4))
+            witness, target = sg.evaluation.TestDataGenerator(
+                [noise_level] * 2
+            ).generate(int(2e4))
 
             for idx_target in [0, int(n_filter / 2), n_filter - 1]:
                 for filt in self.instantiate_filters(
@@ -122,7 +124,7 @@ class TestFilter:
                         filt.condition(witness, target)
                         prediction = filt.apply(witness, target)
 
-                    residual = sg.RMS((target - prediction)[4000:])
+                    residual = sg.evaluation.RMS((target - prediction)[4000:])
 
                     self.assertGreater(residual, acceptable_residual[0])
                     self.assertLess(residual, acceptable_residual[1])
