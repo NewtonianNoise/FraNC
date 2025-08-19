@@ -1,27 +1,11 @@
 # load meson support for python
 py = import('python').find_installation(pure: false)
 
-# get numpy dependencies
-numpy_dep = dependency('numpy', required: true)
 
-# define build instructions for c extensions
-extensions = py.extension_module(
-  '_lms_c',
-  'saftig/_lms_c/_lms_c.cpp',
-  dependencies: numpy_dep,
-  install: true,
-  subdir: 'saftig',
-)
-
+########################################
+# saftig
 python_sources = [
-  'saftig/lms_c.py',
-  'saftig/polylms.py',
-  'saftig/wf.py',
-  'saftig/evaluation.py',
   'saftig/__init__.py',
-  'saftig/common.py',
-  'saftig/lms.py',
-  'saftig/uwf.py',
 ]
 
 # actually install the python module
@@ -31,6 +15,57 @@ py.install_sources(
   subdir: 'saftig'
 )
 
+
+########################################
+# saftig.evaluation
+python_sources = [
+  'saftig/evaluation/__init__.py',
+  'saftig/evaluation/common.py',
+  'saftig/evaluation/evaluation.py',
+]
+
+# actually install the python module
+py.install_sources(
+  python_sources,
+  pure: false,
+  subdir: 'saftig/evaluation'
+)
+
+
+########################################
+# saftig.signal
+# get numpy dependencies
+numpy_dep = dependency('numpy', required: true)
+
+# define build instructions for c extensions
+extensions = py.extension_module(
+  '_lms_c',
+  'saftig/filtering/_lms_c/_lms_c.cpp',
+  dependencies: numpy_dep,
+  install: true,
+  subdir: 'saftig/filtering',
+)
+
+python_sources = [
+  'saftig/filtering/__init__.py',
+  'saftig/filtering/common.py',
+  'saftig/filtering/wf.py',
+  'saftig/filtering/uwf.py',
+  'saftig/filtering/lms.py',
+  'saftig/filtering/lms_c.py',
+  'saftig/filtering/polylms.py',
+]
+
+# actually install the python module
+py.install_sources(
+  python_sources,
+  pure: false,
+  subdir: 'saftig/filtering'
+)
+
+
+########################################
+# saftig.evaluation
 python_sources_external = [
   'saftig/external/__init__.py',
   'saftig/external/spicypy_wf.py',

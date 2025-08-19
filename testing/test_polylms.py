@@ -20,4 +20,4 @@ class TestPolynomialLMSFilter(TestLMSFilter):
             {"order": 2},
             {"order": 1, "normalized": False, "step_scale": 0.001},
         ]
-        self.set_target(sg.PolynomialLMSFilter, test_configurations)
+        self.set_target(sg.filtering.PolynomialLMSFilter, test_configurations)

@@ -6,22 +6,26 @@ from timeit import timeit
 import numpy as np
 from numpy.typing import NDArray
 
-from .common import total_power, FilterBase
+from .common import total_power
+from ..filtering import FilterBase
 
 
 class TestDataGenerator:
     """Generate simple test data for correlated noise mitigation techniques
     The channel count is implicitly defined by the shape of witness_noise_level
 
-    :param witness_noise_level: amplitude ratio of the sensor noise to the correlated noise in the witness sensor
-                 Scalar or 1D-vector for multiple sensors
-    :param target_noise_level: amplitude ratio of the sensor noise to the correlated noise in the target sensor
+    :param witness_noise_level: amplitude ratio of the sensor noise
+                to the correlated noise in the witness sensor
+                Scalar or 1D-vector for multiple sensors
+    :param target_noise_level: amplitude ratio of the sensor noise
+                to the correlated noise in the target sensor
     :param transfer_functon: ratio between the amplitude in the target and witness signals
-    :param sample_rate: The outputs are referenced to an ASD of 1/sqrt(Hz) if a sample rate is provided
+    :param sample_rate: The outputs are referenced
+                to an ASD of 1/sqrt(Hz) if a sample rate is provided
 
     >>> import saftig as sg
     >>> # create data with two witness sensors with relative noise amplitudes of 0.1
-    >>> tdg = sg.TestDataGenerator(witness_noise_level=[0.1, 0.1])
+    >>> tdg = sg.evaluation.TestDataGenerator(witness_noise_level=[0.1, 0.1])
     >>> # generate a dataset with 1000 samples
     >>> witness, target = tdg.generate(1000)
     >>> witness.shape, target.shape

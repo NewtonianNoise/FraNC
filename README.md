@@ -26,15 +26,15 @@ Non-Linear:
 >>>
 >>> # generate data
 >>> n_channel = 2
->>> witness, target = sg.TestDataGenerator([0.1]*n_channel).generate(int(1e5))
+>>> witness, target = sg.eval.TestDataGenerator([0.1]*n_channel).generate(int(1e5))
 >>>
 >>> # instantiate the filter and apply it
->>> filt = sg.LMSFilter(n_filter=128, idx_target=0, n_channel=n_channel)
+>>> filt = sg.filt.LMSFilter(n_filter=128, idx_target=0, n_channel=n_channel)
 >>> filt.condition(witness, target)
 >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
 >>>
 >>> # success
->>> sg.RMS(target-prediction) / sg.RMS(prediction)
+>>> sg.eval.RMS(target-prediction) / sg.eval.RMS(prediction)
 0.08221177645361015
 ```
 

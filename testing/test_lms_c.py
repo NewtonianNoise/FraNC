@@ -19,4 +19,4 @@ class TestLMSFilterC(unittest.TestCase, TestFilter):
             {"normalized": True, "coefficient_clipping": 2, "step_scale": 0.5},
             {"normalized": False, "step_scale": 0.001},
         ]
-        self.set_target(sg.LMSFilterC, test_configurations)
+        self.set_target(sg.filtering.LMSFilterC, test_configurations)

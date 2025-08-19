@@ -19,19 +19,19 @@ IGNORE_FILTER_OPTIONS = {"coefficient_clipping", "step_scale"}
 
 # filter, additional_filter_config, skip_conditioning
 FILTER_CONFIGURATIONS = [
-    (sg.WienerFilter, {}, False),
-    (sg.UpdatingWienerFilter, {"context_pre": 3000}, True),
-    (sg.LMSFilter, {"normalized": True, "coefficient_clipping": 10}, False),
-    (sg.LMSFilterC, {"normalized": True}, False),
-    (sg.PolynomialLMSFilter, {"order": 1, "coefficient_clipping": 10}, False),
-    (sg.PolynomialLMSFilter, {"order": 3, "coefficient_clipping": 10}, False),
+    (sg.filtering.WienerFilter, {}, False),
+    (sg.filtering.UpdatingWienerFilter, {"context_pre": 3000}, True),
+    (sg.filtering.LMSFilter, {"normalized": True, "coefficient_clipping": 10}, False),
+    (sg.filtering.LMSFilterC, {"normalized": True}, False),
+    (sg.filtering.PolynomialLMSFilter, {"order": 1, "coefficient_clipping": 10}, False),
+    (sg.filtering.PolynomialLMSFilter, {"order": 3, "coefficient_clipping": 10}, False),
 ]
 
 if DEBUG:
     FILTER_CONFIGURATIONS = [
-        (sg.WienerFilter, {}, False),
-        (sg.LMSFilter, {"normalized": True}, False),
-        (sg.UpdatingWienerFilter, {"context_pre": 1000}, True),
+        (sg.filtering.WienerFilter, {}, False),
+        (sg.filtering.LMSFilter, {"normalized": True}, False),
+        (sg.filtering.UpdatingWienerFilter, {"context_pre": 1000}, True),
     ]
 
 
@@ -117,7 +117,7 @@ def run_profiling(config, n_samples, n_filter, n_channel, idx_target=0):
     additional_settings = map(lambda x: x[1], config)
     skip_conditioning = list(map(lambda x: x[2], config))
 
-    results = sg.measure_runtime(
+    results = sg.evaluation.measure_runtime(
         filters,
         n_samples,
         n_filter=n_filter,
