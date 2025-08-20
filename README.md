@@ -7,6 +7,8 @@
 Python implementations of different static and adaptive filtering techniques for the prediction of a correlated signal component from witness signals.
 The main goal is to provide a unified interface for the different filtering techniques.
 
+[Documentation](https://saftig.readthedocs.io/en/latest/)
+
 ## Features
 
 Static:
@@ -18,6 +20,14 @@ Adaptive
 
 Non-Linear:
 * Experimental non-linear LMS Filter variant (PolynomialLMS)
+
+## Install
+
+From pypi: `pip install saftig`
+
+From repository: `pip install .`
+
+From repository (editable): `make ie`
 
 ## Minimal example
 
@@ -42,19 +52,3 @@ Non-Linear:
 
 * Witness signal w: One or multiple sensors that are used to make a prediction
 * Target signal s: The goal for the prediction
-
-## Useful commands
-```bash
-make # run linter, testing and generate documentation
-make test # run just the tests
-make view # build and open documentation
-make coverage # report test coverage in terminal
-make cweb # full test coverage report with html
-
-make ie # install as editable package
-make testpublish # build and push to test pypi
-
-# run an individual test
-python -m unittest testing.test_wf
-```
-
