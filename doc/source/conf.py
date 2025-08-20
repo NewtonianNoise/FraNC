@@ -32,6 +32,8 @@ autodoc_typehints = "description"
 html_theme = "nature"
 html_static_path = ["_static"]
 html_theme_options = {
-    "sidebarwidth": "350px",
+    "sidebarwidth": "400px",
 }
-html_sidebars = {"**": ["globaltoc.html", "sourcelink.html", "searchbox.html"]}
+html_sidebars = {
+    "**": ["globaltoc.html", "localtoc.html", "sourcelink.html", "searchbox.html"]
+}
