@@ -13,7 +13,13 @@ author = "Tim Kuhlbusch"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.mathjax"]
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.mathjax",
+    "autoapi.extension",
+]
+
+autoapi_dirs = ["../../src"]
 
 templates_path = ["_templates"]
 exclude_patterns: list = []
@@ -28,3 +34,4 @@ html_static_path = ["_static"]
 html_theme_options = {
     "sidebarwidth": "350px",
 }
+html_sidebars = {"**": ["globaltoc.html", "sourcelink.html", "searchbox.html"]}

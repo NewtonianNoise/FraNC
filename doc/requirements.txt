@@ -1,0 +1,2 @@
+sphinx~=7.1.2
+sphinx-autoapi~=3.3
