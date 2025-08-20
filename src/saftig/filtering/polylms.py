@@ -2,11 +2,13 @@
 
 from typing import Optional
 from collections.abc import Sequence, MutableSequence
+from dataclasses import dataclass
+
 import numpy as np
 from numpy.typing import NDArray
 import numba
 
-from .common import FilterBase
+from .common import FilterBase, handle_from_dict
 
 
 @numba.njit
@@ -18,7 +20,7 @@ def _lms_loop(
     filter_state: NDArray,
     normalized: bool,
     step_scale: float,
-    coefficient_clipping: float | None,
+    coefficient_clipping: float,
     order: int,
 ) -> tuple[NDArray, NDArray, int, int]:
     """Run an LMS filter over intput sequences.
@@ -78,6 +80,7 @@ def _lms_loop(
     return prediction_npy, filter_state, offset_target, pred_length
 
 
+@dataclass
 class PolynomialLMSFilter(FilterBase):
     r"""Experimental non-linear LMS-like filter implementation
     Implements: :math:`x[n] = \sum_p\sum_i\sum_t {w_i[n-t]}^pH_{it}` where p is the polynomial order, i the channel and t the index within the filter
@@ -104,8 +107,14 @@ class PolynomialLMSFilter(FilterBase):
 
     #: The current FIR coefficients of the LMS filter
     filter_state: NDArray
-    filter_name = "PolyLMS"
+    normalized: bool
+    step_scale: float
+    coefficient_clipping: float
+    order: int
 
+    filter_name: str = "PolyLMS"
+
+    @handle_from_dict
     def __init__(
         self,
         n_filter: int,
@@ -113,7 +122,7 @@ class PolynomialLMSFilter(FilterBase):
         n_channel: int = 1,
         normalized: bool = True,
         step_scale: float = 0.5,
-        coefficient_clipping: Optional[float] = None,
+        coefficient_clipping: float = np.nan,
         order: int = 1,
     ):
         super().__init__(n_filter, idx_target, n_channel)
@@ -124,7 +133,7 @@ class PolynomialLMSFilter(FilterBase):
 
         assert self.step_scale > 0, "Step scale must be positive"
         assert (
-            self.coefficient_clipping is None or self.coefficient_clipping > 0
+            np.isnan(self.coefficient_clipping) or self.coefficient_clipping > 0
         ), "coefficient_clipping must be positive"
         assert self.order > 0
 
@@ -165,6 +174,8 @@ class PolynomialLMSFilter(FilterBase):
         witness, target = self.check_data_dimensions(witness, target)
         assert target is not None, "Target data must be supplied"
 
+        # addition of zero is used to convert numpy scalars into standard python objects
+        # numba jit and numpy don't work otherwise
         prediction, filter_state, offset_target, pred_length = _lms_loop(
             witness,
             target,
@@ -173,8 +184,8 @@ class PolynomialLMSFilter(FilterBase):
             np.array(self.filter_state),
             self.normalized,
             self.step_scale,
-            self.coefficient_clipping,
-            self.order,
+            0 + self.coefficient_clipping,
+            0 + self.order,
         )
 
         if update_state:

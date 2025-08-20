@@ -45,6 +45,11 @@ class SpicypyWienerFilter(FilterBase):
         self.filter_state: Optional[spicypy.signal.WienerFilter]
 
     @staticmethod
+    def supports_saving_loading():
+        """Indicates whether saving and loading is supported."""
+        return False
+
+    @staticmethod
     def make_spicypy_time_series(
         witness: Sequence | NDArray,
         target: Optional[Sequence | NDArray],

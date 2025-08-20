@@ -1,13 +1,16 @@
 """faster LMS filter implemented in c"""
 
 from collections.abc import Sequence
+from dataclasses import dataclass
+
 import numpy as np
 from numpy.typing import NDArray
 
 from ._lms_c import LMS_C  # type: ignore[attr-defined]
-from .common import FilterBase
+from .common import FilterBase, handle_from_dict
 
 
+@dataclass
 class LMSFilterC(FilterBase):
     """LMS filter implementation in C (faster but harder to adjust)
 
@@ -29,8 +32,9 @@ class LMSFilterC(FilterBase):
 
     """
 
-    filter_name = "LMS_C"
+    filter_name: str = "LMS_C"
 
+    @handle_from_dict
     def __init__(
         self,
         n_filter: int,
@@ -49,6 +53,11 @@ class LMSFilterC(FilterBase):
             normalized,
             np.nan if coefficient_clipping is None else coefficient_clipping,
         )
+
+    @staticmethod
+    def supports_saving_loading():
+        """Indicates whether saving and loading is supported."""
+        return False
 
     def reset(self) -> None:
         """reset the filter coefficients to zero"""

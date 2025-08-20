@@ -2,13 +2,14 @@
 
 from typing import Union, Tuple, Optional
 from collections.abc import Sequence
+from dataclasses import dataclass
 from warnings import warn
 
 import numpy as np
 from numpy.typing import NDArray
 from scipy.signal import correlate
 
-from .common import FilterBase, make_2d_array
+from .common import FilterBase, make_2d_array, handle_from_dict
 
 
 def mean_cross_correlation_offset(
@@ -129,6 +130,7 @@ def wf_apply(
     )
 
 
+@dataclass
 class WienerFilter(FilterBase):
     """Satic Wiener filter implementation
 
@@ -152,7 +154,17 @@ class WienerFilter(FilterBase):
 
     #: The FIR coefficients of the WF
     filter_state: NDArray | None = None
-    filter_name = "WF"
+    filter_name: str = "WF"
+
+    @handle_from_dict
+    def __init__(
+        self,
+        n_filter: int,
+        idx_target: int,
+        n_channel: int = 1,
+    ):
+        super().__init__(n_filter, idx_target, n_channel)
+        self.requires_apply_target = False
 
     def condition(
         self,
@@ -164,8 +176,6 @@ class WienerFilter(FilterBase):
         :param witness: Witness sensor data
         :param target: Target sensor data
         """
-        self.requries_apply_target = False
-
         witness_npy, target_npy = self.check_data_dimensions(witness, target)
 
         self.filter_state, full_rank = wf_calculate(

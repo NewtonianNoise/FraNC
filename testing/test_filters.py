@@ -1,7 +1,12 @@
 from typing import Iterable
 import warnings
 
+import numpy as np
+
 import saftig as sg
+
+# file used to test saving and loading of filters
+TEST_FILE = "testing/filter_serialization_test_file"
 
 
 class TestFilter:
@@ -10,6 +15,7 @@ class TestFilter:
     """
 
     __test__ = False
+    do_saving_loading_tests = True
 
     # The to-be-tested filter class
     target_filter: type[sg.filtering.FilterBase]
@@ -128,3 +134,25 @@ class TestFilter:
 
                     self.assertGreater(residual, acceptable_residual[0])
                     self.assertLess(residual, acceptable_residual[1])
+
+    def test_saving_loading(self):
+        """Test that saving and loading works correctly."""
+        if not self.do_saving_loading_tests:
+            warnings.warn(
+                f"Skipping saving and loading test for {self.target_filter.filter_name}."
+            )
+            return
+
+        # generate test data
+        n_filter = 32
+        witness, target = sg.evaluation.TestDataGenerator([0.1] * 2).generate(int(2e4))
+
+        for filt in self.instantiate_filters(n_filter, n_channel=2):
+            filt.condition(witness, target)
+            filt.save(TEST_FILE)
+            loaded_filter = self.target_filter.load(TEST_FILE)
+
+            prediction_orig = filt.apply(witness, target)
+            prediction_loaded = loaded_filter.apply(witness, target)
+
+            self.assertAlmostEqual(np.sum(prediction_orig), np.sum(prediction_loaded))
