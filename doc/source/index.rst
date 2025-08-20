@@ -1,18 +1,10 @@
 ``saftig`` Package
 ===================
 
-.. automodule:: saftig
-   :members:
-
--------------------
-
-**Sub-Modules:**
+.. contents:: Table of Contents
+      :depth: 1
+      :local:
+      :backlinks: none
 
 .. toctree::
-   saftig.common
-   saftig.evaluation
-   saftig.wf
-   saftig.uwf
-   saftig.lms
-   saftig.polylms
-
+    Introduction <introduction>
