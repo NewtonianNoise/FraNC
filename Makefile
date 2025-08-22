@@ -11,6 +11,8 @@ pytest:
 	pytest
 test_time:
 	python -m unittest discover . --duration=5
+test_nojit:
+	export NUMBA_DISABLE_JIT=1 && python -m unittest discover .
 test_coverage:
 	export NUMBA_DISABLE_JIT=1 && coverage run -m unittest discover .
 coverage: test_coverage
