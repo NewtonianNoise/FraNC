@@ -171,12 +171,22 @@ class FilterBase:
 
     def as_dict(self) -> dict:
         """Returns a dictionary that represents the state of this filter."""
+        if not self.supports_saving_loading():
+            raise NotImplementedError(
+                "Saving and loading is not supported for this filter type."
+            )
+
         return asdict(self)
 
     @classmethod
     def from_dict(cls: Type[FilterType], input_dict) -> FilterType:
         """Create a filter instance from a dictionary that was created from as_dict()"""
         # check that the dict contains all relevant keys and eliminate any extra keys
+        if not cls.supports_saving_loading():
+            raise NotImplementedError(
+                "Saving and loading is not supported for this filter type."
+            )
+
         try:
             clean_dict = {key.name: input_dict[key.name] for key in fields(cls)}
         except Exception as e:
@@ -205,13 +215,8 @@ class FilterBase:
         warn_incompatible: set to True to warn for object types might not
                            compatible with np.save(allow_pickle=False) during developement
         """
-        if not self.supports_saving_loading():
-            raise NotImplementedError(
-                "Saving and loading is not supported for this filter type."
-            )
-
-        filename = self._make_filename(filename)
         serialization_data = self.as_dict()
+        filename = self._make_filename(filename)
 
         # this is intended to quickly identify problematic values when developing a new filter
         if warn_incompatible:
