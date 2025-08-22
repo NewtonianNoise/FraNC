@@ -3,6 +3,7 @@
 from typing import Optional, Type, TypeVar
 from collections.abc import Sequence
 from dataclasses import dataclass, asdict, fields
+import warnings
 
 import numpy as np
 from numpy.typing import NDArray
@@ -90,12 +91,17 @@ class FilterBase:
         assert (
             self.idx_target >= 0 and self.idx_target < self.n_filter
         ), "idx_target must not be negative and smaller than n_filter"
-        assert hasattr(self, "filter_name"), "BaseFilter childs must declare their name"
 
-        # this should never actually be called
-        # but is a nice way to satisfy the type checker
-        if not hasattr(self, "filter_name"):
-            self.filter_name = "FilterBase"
+        if self.__class__ is FilterBase:
+            warnings.warn("Instantiating FilterBase is not intended!")
+
+            # set a filter name for the base filter for testing
+            if not hasattr(self, "filter_name"):
+                self.filter_name = "FilterBase"
+        else:
+            assert hasattr(
+                self, "filter_name"
+            ), "BaseFilter childs must declare their name"
 
         # this can be set to false after the super().__init__() statement in child
         self.requires_apply_target = True

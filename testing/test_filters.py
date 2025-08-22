@@ -1,3 +1,4 @@
+import unittest
 from typing import Iterable
 import warnings
 
@@ -9,13 +10,25 @@ import saftig as sg
 TEST_FILE = "testing/filter_serialization_test_file"
 
 
+class TestFilterBase(unittest.TestCase):
+    """Tests for the filter base class"""
+
+    def test_for_exceptions(self):
+        """Check that FilterBase member functions throw appropriate errors"""
+        with warnings.catch_warnings():  # warnings are expected here
+            warnings.simplefilter("ignore")
+            filt = sg.filtering.FilterBase(10, 0, 1)
+
+        self.assertRaises(NotImplementedError, filt.condition, None, None)
+        self.assertRaises(NotImplementedError, filt.apply, None, None)
+
+
 class TestFilter:
     """Parent class for all filter testingr
     Contains common test cases and testing tools
     """
 
     __test__ = False
-    do_saving_loading_tests = True
 
     # The to-be-tested filter class
     target_filter: type[sg.filtering.FilterBase]
@@ -135,24 +148,40 @@ class TestFilter:
                     self.assertGreater(residual, acceptable_residual[0])
                     self.assertLess(residual, acceptable_residual[1])
 
-    def test_saving_loading(self):
-        """Test that saving and loading works correctly."""
-        if not self.do_saving_loading_tests:
-            warnings.warn(
-                f"Skipping saving and loading test for {self.target_filter.filter_name}."
-            )
-            return
+    def test_from_wrong_dict(self):
+        """Check that attemting to load from an incompatible dict fails"""
+        if self.target_filter.supports_saving_loading():
+            self.assertRaises(ValueError, self.target_filter.from_dict, {})
 
+            ref_dict = self.target_filter(10, 0, 1).as_dict()
+            ref_dict["filter_name"] = "not_a_filter_name"
+            self.assertRaises(ValueError, self.target_filter.from_dict, ref_dict)
+        else:
+            self.assertRaises(NotImplementedError, self.target_filter.from_dict, {})
+
+    def test_saving_loading(self):
+        """Test that saving and loading works correctly.
+        Or check that NotImplemented errors are thrown if self.do_saving_loading_tests is False.
+        """
         # generate test data
         n_filter = 32
         witness, target = sg.evaluation.TestDataGenerator([0.1] * 2).generate(int(2e4))
 
         for filt in self.instantiate_filters(n_filter, n_channel=2):
-            filt.condition(witness, target)
-            filt.save(TEST_FILE)
-            loaded_filter = self.target_filter.load(TEST_FILE)
 
-            prediction_orig = filt.apply(witness, target)
-            prediction_loaded = loaded_filter.apply(witness, target)
+            if filt.supports_saving_loading():
+                filt.condition(witness, target)
+                filt.save(TEST_FILE)
+                loaded_filter = self.target_filter.load(TEST_FILE)
 
-            self.assertAlmostEqual(np.sum(prediction_orig), np.sum(prediction_loaded))
+                prediction_orig = filt.apply(witness, target)
+                prediction_loaded = loaded_filter.apply(witness, target)
+
+                self.assertAlmostEqual(
+                    np.sum(prediction_orig), np.sum(prediction_loaded)
+                )
+            else:
+                self.assertRaises(NotImplementedError, filt.save, TEST_FILE)
+                self.assertRaises(
+                    NotImplementedError, self.target_filter.load, TEST_FILE
+                )
