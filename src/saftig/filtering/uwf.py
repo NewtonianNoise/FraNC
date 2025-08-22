@@ -2,15 +2,17 @@
 
 from typing import Optional
 from collections.abc import Sequence
+from dataclasses import dataclass
 from warnings import warn
 
 import numpy as np
 from numpy.typing import NDArray
 
-from .common import FilterBase
+from .common import FilterBase, handle_from_dict
 from .wf import wf_calculate, wf_apply
 
 
+@dataclass
 class UpdatingWienerFilter(FilterBase):
     """Updating Wiener filter implementation
 
@@ -33,9 +35,12 @@ class UpdatingWienerFilter(FilterBase):
     """
 
     #: The FIR coefficients of the WF
-    filter_state: NDArray
-    filter_name = "UWF"
+    context_pre: int
+    context_post: int
 
+    filter_name: str = "UWF"
+
+    @handle_from_dict
     def __init__(
         self,
         n_filter: int,
@@ -47,6 +52,11 @@ class UpdatingWienerFilter(FilterBase):
         super().__init__(n_filter, idx_target, n_channel)
         self.context_pre = context_pre
         self.context_post = context_post
+
+    @staticmethod
+    def supports_saving_loading():
+        """Indicates whether saving and loading is supported."""
+        return False
 
     def condition(
         self,

@@ -1,8 +1,9 @@
 import unittest
+from warnings import warn
+
 import numpy as np
 
 import saftig as sg
-
 from .test_filters import TestFilter
 
 
@@ -10,6 +11,8 @@ class TestLMSFilterC(unittest.TestCase, TestFilter):
     """tests for the LeastMeanSquares filter implementation"""
 
     __test__ = True
+
+    do_saving_loading_tests = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

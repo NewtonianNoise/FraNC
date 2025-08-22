@@ -7,6 +7,7 @@ ie:
 test:
 	python -m unittest discover .
 pytest:
+	pytest --doctest-modules src/saftig/
 	pytest
 test_time:
 	python -m unittest discover . --duration=5

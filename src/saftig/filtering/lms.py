@@ -1,11 +1,13 @@
 """Least Mean Squares filter"""
 
 from collections.abc import Sequence
+from dataclasses import dataclass
+
 import numpy as np
 from numpy.typing import NDArray
 import numba
 
-from .common import FilterBase
+from .common import FilterBase, handle_from_dict
 
 
 @numba.njit
@@ -17,7 +19,7 @@ def _lms_loop(
     filter_state: NDArray,
     normalized: bool,
     step_scale: float,
-    coefficient_clipping: float | None,
+    coefficient_clipping: float,
 ) -> tuple[NDArray, NDArray, int, int]:
     offset_target = n_filter - idx_target - 1
     pred_length = len(target) - n_filter + 1
@@ -42,13 +44,14 @@ def _lms_loop(
         else:
             filter_state += 2 * step_scale * err * w_sel
 
-        if coefficient_clipping is not None:
+        if not np.isnan(coefficient_clipping):
             filter_state = np.clip(
                 filter_state, -coefficient_clipping, coefficient_clipping
             )
     return np.array(prediction), filter_state, offset_target, pred_length
 
 
+@dataclass
 class LMSFilter(FilterBase):
     """LMS filter implementation
 
@@ -73,8 +76,13 @@ class LMSFilter(FilterBase):
 
     #: The current FIR coefficients of the LMS filter
     filter_state: NDArray
-    filter_name = "LMS"
+    normalized: bool
+    step_scale: float
+    coefficient_clipping: float
 
+    filter_name: str = "LMS"
+
+    @handle_from_dict
     def __init__(
         self,
         n_filter: int,
@@ -82,7 +90,7 @@ class LMSFilter(FilterBase):
         n_channel: int = 1,
         normalized: bool = True,
         step_scale: float = 0.1,
-        coefficient_clipping: float | None = None,
+        coefficient_clipping: float = np.nan,
     ):
         super().__init__(n_filter, idx_target, n_channel)
         self.normalized = normalized
@@ -91,7 +99,7 @@ class LMSFilter(FilterBase):
 
         assert self.step_scale > 0, "Step scale must be positive"
         assert (
-            self.coefficient_clipping is None or self.coefficient_clipping > 0
+            np.isnan(self.coefficient_clipping) or self.coefficient_clipping > 0
         ), "coefficient_clipping must be positive"
 
         self.reset()
@@ -131,6 +139,8 @@ class LMSFilter(FilterBase):
         witness, target = self.check_data_dimensions(witness, target)
         assert target is not None, "Target data must be supplied"
 
+        # addition of zero is used to convert numpy scalars into standard python objects
+        # numba jit and numpy don't work otherwise
         prediction, filter_state, offset_target, pred_length = _lms_loop(
             witness,
             target,
@@ -139,7 +149,7 @@ class LMSFilter(FilterBase):
             np.array(self.filter_state),
             self.normalized,
             self.step_scale,
-            self.coefficient_clipping,
+            0 + self.coefficient_clipping,
         )
 
         if update_state:
