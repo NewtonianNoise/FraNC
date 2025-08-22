@@ -71,7 +71,7 @@ def _lms_loop(
             for i in range(order):
                 filter_state[i] += 2 * step_scale * err * w_sel ** (i + 1)
 
-        if coefficient_clipping is not None:
+        if not np.isnan(coefficient_clipping):
             filter_state = np.clip(
                 filter_state, -coefficient_clipping, coefficient_clipping
             )
@@ -174,8 +174,8 @@ class PolynomialLMSFilter(FilterBase):
         witness, target = self.check_data_dimensions(witness, target)
         assert target is not None, "Target data must be supplied"
 
-        # addition of zero is used to convert numpy scalars into standard python objects
-        # numba jit and numpy don't work otherwise
+        # numba jit and numpy don't always work correctly with numpy arrays scalars
+        # casting is required to prevent problems
         prediction, filter_state, offset_target, pred_length = _lms_loop(
             witness,
             target,
@@ -184,8 +184,8 @@ class PolynomialLMSFilter(FilterBase):
             np.array(self.filter_state),
             self.normalized,
             self.step_scale,
-            0 + self.coefficient_clipping,
-            0 + self.order,
+            np.float64(self.coefficient_clipping),
+            int(self.order),
         )
 
         if update_state:
