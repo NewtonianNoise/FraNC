@@ -9,6 +9,8 @@ import saftig as sg
 # file used to test saving and loading of filters
 TEST_FILE = "testing/filter_serialization_test_file"
 
+RNG_SEED = 113510
+
 
 class TestFilterBase(unittest.TestCase):
     """Tests for the filter base class"""
@@ -66,7 +68,9 @@ class TestFilter:
     def test_exception_on_missshaped_input(self):
         """Check that matching exceptions are thrown for obviously wrong input shapes"""
         n_filter = 128
-        witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e4))
+        witness, target = sg.evaluation.TestDataGenerator(
+            0.1, rng_seed=RNG_SEED
+        ).generate(int(1e4))
 
         for filt in self.instantiate_filters(n_filter):
             with warnings.catch_warnings():  # warnings are expected here
@@ -78,7 +82,9 @@ class TestFilter:
     def test_acceptance_of_minimum_input_length(self):
         """Check that the filter works with the minimum input length of two filter lengths"""
         n_filter = 128
-        witness, target = sg.evaluation.TestDataGenerator(0.1).generate(n_filter * 2)
+        witness, target = sg.evaluation.TestDataGenerator(
+            0.1, rng_seed=RNG_SEED
+        ).generate(n_filter * 2)
 
         for filt in self.instantiate_filters(n_filter):
             with warnings.catch_warnings():  # warnings are expected here
@@ -89,7 +95,9 @@ class TestFilter:
     def test_acceptance_of_lists(self):
         """Check that the filter accepts inputs that are not np.ndarray"""
         n_filter = 128
-        witness, target = sg.evaluation.TestDataGenerator(0.1).generate(n_filter * 2)
+        witness, target = sg.evaluation.TestDataGenerator(
+            0.1, rng_seed=RNG_SEED
+        ).generate(n_filter * 2)
 
         for filt in self.instantiate_filters(n_filter):
             with warnings.catch_warnings():  # warnings are expected here
@@ -100,7 +108,9 @@ class TestFilter:
     def test_output_shapes(self):
         """Check output shapes"""
         n_filter = 128
-        witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e4))
+        witness, target = sg.evaluation.TestDataGenerator(
+            0.1, rng_seed=RNG_SEED
+        ).generate(int(1e4))
 
         for filt in self.instantiate_filters(n_filter):
             with warnings.catch_warnings():  # warnings are expected here
@@ -118,7 +128,9 @@ class TestFilter:
     def test_apply_on_unconditioned_filter(self):
         """Check that calling apply() on an unconditioned filter either works or throws an RuntimeError"""
         n_filter = 128
-        witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e4))
+        witness, target = sg.evaluation.TestDataGenerator(
+            0.1, rng_seed=RNG_SEED
+        ).generate(int(1e4))
 
         for filt in self.instantiate_filters(n_filter):
             try:
@@ -131,7 +143,7 @@ class TestFilter:
         for noise_level, acceptable_residual in self.expected_performance.items():
             n_filter = 32
             witness, target = sg.evaluation.TestDataGenerator(
-                [noise_level] * 2
+                [noise_level] * 2, rng_seed=RNG_SEED
             ).generate(int(2e4))
 
             for idx_target in [0, int(n_filter / 2), n_filter - 1]:
@@ -165,7 +177,9 @@ class TestFilter:
         """
         # generate test data
         n_filter = 32
-        witness, target = sg.evaluation.TestDataGenerator([0.1] * 2).generate(int(2e4))
+        witness, target = sg.evaluation.TestDataGenerator(
+            [0.1] * 2, rng_seed=RNG_SEED
+        ).generate(int(2e4))
 
         for filt in self.instantiate_filters(n_filter, n_channel=2):
 
