@@ -9,7 +9,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 # create a type variable that can be any instance of a Filter subclass
-FilterType = TypeVar("FilterType", bound="FilterBase")
+FilterTypeT = TypeVar("FilterTypeT", bound="FilterBase")
 
 
 def make_2d_array(A: Sequence | Sequence[Sequence] | NDArray) -> NDArray:
@@ -94,14 +94,15 @@ class FilterBase:
 
         if self.__class__ is FilterBase:
             warnings.warn("Instantiating FilterBase is not intended!")
-
-            # set a filter name for the base filter for testing
-            if not hasattr(self, "filter_name"):
-                self.filter_name = "FilterBase"
         else:
             assert hasattr(
                 self, "filter_name"
             ), "BaseFilter childs must declare their name"
+
+        # set a filter name for the base filter for testing
+        self.filter_name: str = (
+            self.filter_name if hasattr(self, "filter_name") else "FitlerBase"
+        )
 
         # this can be set to false after the super().__init__() statement in child
         self.requires_apply_target = True
@@ -185,7 +186,7 @@ class FilterBase:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: Type[FilterType], input_dict) -> FilterType:
+    def from_dict(cls: Type[FilterTypeT], input_dict) -> FilterTypeT:
         """Create a filter instance from a dictionary that was created from as_dict()"""
         # check that the dict contains all relevant keys and eliminate any extra keys
         if not cls.supports_saving_loading():
@@ -198,16 +199,18 @@ class FilterBase:
         except Exception as e:
             raise ValueError("Non-compatible dictionary, could not load filter.") from e
 
-        if cls.filter_name != clean_dict["filter_name"]:
+        if not hasattr(cls, "filter_name"):
+            raise ValueError("From_dict cannot be used on an unnamed filter class.")
+        if cls.filter_name != clean_dict["filter_name"]:  # pylint: disable=no-member
             raise ValueError(
-                f'Loading a {clean_dict["filter_name"]} as {cls.filter_name} is not possible.'
+                f'Loading a {clean_dict["filter_name"]} as {cls.filter_name} is not possible.'  # pylint: disable=no-member
             )
 
-        return cls(_from_dict=clean_dict)
+        return cls(1, 0, _from_dict=clean_dict)
 
     @classmethod
-    def _make_filename(cls: Type[FilterType], filename):
-        ending = "." + cls.filter_name + ".npz"
+    def _make_filename(cls: Type[FilterTypeT], filename):
+        ending = "." + cls.filter_name + ".npz"  # pylint: disable=no-member
         if not filename.endswith(ending):
             filename += ending
         return filename
@@ -236,7 +239,7 @@ class FilterBase:
         np.savez(filename, allow_pickle=False, **serialization_data)
 
     @classmethod
-    def load(cls: Type[FilterType], filename) -> FilterType:
+    def load(cls: Type[FilterTypeT], filename) -> FilterTypeT:
         """Load a filter state from the supplied filename.
 
         The given filename will be autocompleted with a  ".<filter_name>.npz"

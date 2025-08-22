@@ -53,6 +53,8 @@ class UpdatingWienerFilter(FilterBase):
         self.context_pre = context_pre
         self.context_post = context_post
 
+        self.filter_state: Optional[NDArray] = None
+
     @staticmethod
     def supports_saving_loading():
         """Indicates whether saving and loading is supported."""

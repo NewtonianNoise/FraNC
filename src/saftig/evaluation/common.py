@@ -1,6 +1,5 @@
 """Shared functionality for all other modules"""
 
-from typing import Optional
 from collections.abc import Sequence
 
 import numpy as np

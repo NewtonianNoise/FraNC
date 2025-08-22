@@ -59,7 +59,8 @@ class LMSFilter(FilterBase):
     :param idx_target: Position of the prediction
     :param n_channel: Number of witness sensor channels
     :param normalized: if True: NLMS, else LMS
-    :param coefficient_clipping: If set to a positive float, FIR filter coefficients will be limited to this value. This can increase filter stability.
+    :param coefficient_clipping: If set to a positive float, FIR filter coefficients
+           will be limited to this value. This can increase filter stability.
     :param step_scale: the learning rate of the LMS filter
 
     >>> import saftig as sg

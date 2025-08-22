@@ -1,6 +1,6 @@
 """Clasical static Wiener filter"""
 
-from typing import Union, Tuple, Optional
+from typing import Tuple, Optional
 from collections.abc import Sequence
 from dataclasses import dataclass
 from warnings import warn

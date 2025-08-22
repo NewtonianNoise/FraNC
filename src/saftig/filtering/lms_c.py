@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from ._lms_c import LMS_C  # type: ignore[attr-defined]
+from ._lms_c import LMS_C  # type: ignore[attr-defined] # pylint: disable=no-name-in-module
 from .common import FilterBase, handle_from_dict
 
 

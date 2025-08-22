@@ -62,7 +62,7 @@ def get_platform_info():
                 .strip()
                 + " Cores"
             )
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         cpu = "-"
         warn(f"Could not get platform information ({repr(e)})")
 
