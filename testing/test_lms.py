@@ -5,6 +5,8 @@ import saftig as sg
 
 from .test_filters import TestFilter
 
+RNG_SEED = 113510
+
 
 class TestLMSFilter(unittest.TestCase, TestFilter):
     """tests for the LeastMeanSquares filter implementation"""
@@ -23,7 +25,9 @@ class TestLMSFilter(unittest.TestCase, TestFilter):
 
     def test_update_state_setting(self):
         """check that the filter reaches a WF-Like performance on a simple static test case"""
-        witness, target = sg.evaluation.TestDataGenerator([0.1] * 2).generate(int(2e4))
+        witness, target = sg.evaluation.TestDataGenerator(
+            [0.1] * 2, rng_seed=RNG_SEED
+        ).generate(int(2e4))
 
         for filt in self.instantiate_filters(n_filter=32, n_channel=2):
             # check for no changes when False

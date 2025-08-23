@@ -1,7 +1,6 @@
 """experiment in building a polynomial lms filter"""
 
-from typing import Optional
-from collections.abc import Sequence, MutableSequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -90,7 +89,8 @@ class PolynomialLMSFilter(FilterBase):
     :param n_channel: Number of witness sensor channels
     :param normalized: If True: NLMS, else LMS
     :param step_scale: The learning rate of the LMS filter
-    :param coefficient_clipping: If set to a positive float, FIR filter coefficients will be limited to this value. This can increase filter stability.
+    :param coefficient_clipping: If set to a positive float, FIR filter coefficients
+           will be limited to this value. This can increase filter stability.
     :param order: Polynomial order of the filter
 
     >>> import saftig as sg

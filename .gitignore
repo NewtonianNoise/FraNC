@@ -115,3 +115,5 @@ TODO
 
 # files generated during testing
 testing/filter_serialization_test_file.*.npz
+
+.vscode

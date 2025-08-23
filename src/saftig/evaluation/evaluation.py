@@ -1,5 +1,6 @@
 """Collection of tools for the evaluation and testing of filters"""
 
+from typing import Any, Optional
 from collections.abc import Sequence
 from timeit import timeit
 
@@ -33,17 +34,25 @@ class TestDataGenerator:
 
     """
 
+    rng: Any
+
     def __init__(
         self,
         witness_noise_level: float | Sequence = 0.1,
         target_noise_level: float = 0,
         transfer_function: float = 1,
         sample_rate: float = 1.0,
+        rng_seed: Optional[int] = None,
     ):
         self.witness_noise_level = np.array(witness_noise_level)
         self.target_noise_level = np.array(target_noise_level)
         self.transfer_function = np.array(transfer_function)
         self.sample_rate = sample_rate
+
+        if rng_seed is None:
+            self.rng = np.random
+        else:
+            self.rng = np.random.default_rng(rng_seed)
 
         if len(self.witness_noise_level.shape) == 0:
             self.witness_noise_level = np.array([self.witness_noise_level])
@@ -62,7 +71,7 @@ class TestDataGenerator:
 
         :return: Array of white noise
         """
-        return np.random.normal(0, np.sqrt(self.sample_rate / 2), shape)
+        return self.rng.normal(0, np.sqrt(self.sample_rate / 2), shape)
 
     def generate(self, N: int) -> tuple[NDArray, NDArray]:
         """Generate sequences of samples

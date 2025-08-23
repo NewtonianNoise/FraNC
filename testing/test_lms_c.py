@@ -12,8 +12,6 @@ class TestLMSFilterC(unittest.TestCase, TestFilter):
 
     __test__ = True
 
-    do_saving_loading_tests = False
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

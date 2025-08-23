@@ -9,7 +9,6 @@ class TestSpicypyWienerFilter(unittest.TestCase, TestFilter):
     """Tests for the WF"""
 
     __test__ = True
-    do_saving_loading_tests = False
 
     expected_performance = {
         # noise level, (acceptance min, acceptance_max)
