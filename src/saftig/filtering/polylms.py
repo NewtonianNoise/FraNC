@@ -99,7 +99,7 @@ class PolynomialLMSFilter(FilterBase):
     >>> filt = sg.filtering.PolynomialLMSFilter(n_filter, 0, 1, step_scale=0.1, order=2, coefficient_clipping=4)
     >>> filt.condition(witness, target)
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
-    >>> residual_rms = sg.evaluation.RMS((target-prediction)[1000:])
+    >>> residual_rms = sg.evaluation.rms((target-prediction)[1000:])
     >>> residual_rms > 0.05 and residual_rms < 0.15 # the expected RMS in this test scenario is 0.1
     True
 

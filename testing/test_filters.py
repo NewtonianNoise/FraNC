@@ -155,7 +155,7 @@ class TestFilter:
                         filt.condition(witness, target)
                         prediction = filt.apply(witness, target)
 
-                    residual = sg.evaluation.RMS((target - prediction)[4000:])
+                    residual = sg.evaluation.rms((target - prediction)[4000:])
 
                     self.assertGreater(residual, acceptable_residual[0])
                     self.assertLess(residual, acceptable_residual[1])
