@@ -8,7 +8,7 @@ requires = [
 
 [project]
 name = "saftig"
-version = "0.1.1"
+version = "0.2.0"
 description = "Implementations of different static and adaptive filtering techniques for the prediction of a correlated signal component from witness signals."
 readme = "README.md"
 license = "GPL-3.0-only"
