@@ -6,19 +6,16 @@ This is a python implementations of different static and adaptive filtering tech
 Features
 =========
 
-Static:
--------
+**Static:**
 
 * Wiener Filter (WF)
 
-Adaptive:
----------
+**Adaptive:**
 
 * Updating Wiener Fitler (UWF)
 * Least-Mean-Squares Filter (LMS)
 
-Non-Linear:
-------------
+**Non-Linear:**
 
 * Experimental non-linear LMS Filter variant (PolynomialLMS)
 
