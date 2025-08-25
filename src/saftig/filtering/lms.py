@@ -69,7 +69,7 @@ class LMSFilter(FilterBase):
     >>> filt = sg.filtering.LMSFilter(n_filter, 0, 1)
     >>> filt.condition(witness, target)
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
-    >>> residual_rms = sg.evaluation.RMS(target-prediction)
+    >>> residual_rms = sg.evaluation.rms(target-prediction)
     >>> residual_rms > 0.05 and residual_rms < 0.15 # the expected RMS in this test scenario is 0.1
     True
 

@@ -45,8 +45,8 @@ if __name__ == "__main__":
     ic(pred.shape)
     ic(pred.shape[0] - t.shape[0])
 
-    ic(saftig.evaluation.RMS(t[2000:]))
-    ic(saftig.evaluation.RMS((t - pred)[2000:]))
+    ic(saftig.evaluation.rms(t[2000:]))
+    ic(saftig.evaluation.rms((t - pred)[2000:]))
     ic(saftig.evaluation.residual_amplitude_ratio(t, pred, start=2000))
 
     plt.figure()

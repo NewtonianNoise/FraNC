@@ -73,7 +73,7 @@ class TestDataGenerator:
         """
         return self.rng.normal(0, np.sqrt(self.sample_rate / 2), shape)
 
-    def generate(self, N: int) -> tuple[NDArray, NDArray]:
+    def generate(self, n: int) -> tuple[NDArray, NDArray]:
         """Generate sequences of samples
 
         :param N: number of samples
@@ -81,12 +81,12 @@ class TestDataGenerator:
         :return: witness signal, target signal
 
         """
-        t_c = self.scaled_whitenoise(N)
+        t_c = self.scaled_whitenoise(n)
         w_n = (
-            self.scaled_whitenoise((len(self.witness_noise_level), N))
+            self.scaled_whitenoise((len(self.witness_noise_level), n))
             * self.witness_noise_level[:, None]
         )
-        t_n = self.scaled_whitenoise(N) * self.target_noise_level
+        t_n = self.scaled_whitenoise(n) * self.target_noise_level
 
         return (t_c + w_n) * self.transfer_function, (t_c + t_n)
 
