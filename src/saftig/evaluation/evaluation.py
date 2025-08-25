@@ -1,14 +1,127 @@
 """Collection of tools for the evaluation and testing of filters"""
 
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 from collections.abc import Sequence
 from timeit import timeit
+from dataclasses import dataclass
+import hashlib
+import struct
 
 import numpy as np
 from numpy.typing import NDArray
 
 from .common import total_power
 from ..filtering import FilterBase
+
+
+def hash_function(data: bytes) -> int:
+    """The hash function used to identify similar datasets, methods, configurations, .."""
+    return int.from_bytes(hashlib.sha1(data).digest(), "big")
+
+
+@dataclass
+class EvaluationDataset:
+    """A representation of a dataset for the evaluation of noise mitigation methods.
+
+    Provided sequences will be stored as immutable float64 numpy arrays.
+
+    :param sample_rate: Sample rate in Hz
+    :param witness_conditioning: witness channel data for the conditioning
+        format: witness_conditioning[sequence_idx][channel_idx][sample_idx]
+    :param target_conditioning: target channel data for the conditioning
+        format: witness_conditioning[sequence_idx][sample_idx]
+    :param witness_conditioning: witness channel data for the evaluation
+    :param target_conditioning: target channel data for the evaluation
+    :param name: (Optional) a string describing the dataset
+    """
+
+    sample_rate: float
+    witness_conditioning: Sequence[Sequence[NDArray]]
+    target_conditioning: Sequence[NDArray]
+    witness_evaluation: Sequence[Sequence[NDArray]]
+    target_evaluation: Sequence[NDArray]
+    name: str
+
+    def __init__(
+        self,
+        sample_rate: float,
+        witness_conditioning: Sequence[Sequence[NDArray]],
+        target_conditioning: Sequence[NDArray],
+        witness_evaluation: Sequence[Sequence[NDArray]],
+        target_evaluation: Sequence[NDArray],
+        name: str = "Unnamed",
+    ):
+        self.sample_rate = float(sample_rate)
+        self.witness_conditioning, self.target_conditioning = self._prepare_dataset(
+            witness_conditioning, target_conditioning
+        )
+        self.witness_evaluation, self.target_evaluation = self._prepare_dataset(
+            witness_evaluation, target_evaluation
+        )
+        self.name = name
+
+        if not isinstance(name, str):
+            raise ValueError("name must be a string")
+
+    @staticmethod
+    def _prepare_dataset(
+        witness_inp, target_inp
+    ) -> Tuple[Sequence[Sequence[NDArray]], Sequence[NDArray]]:
+        """Convert input to immutable np.float64 arrays and check shape"""
+        witness = tuple(
+            tuple(np.array(j, dtype=np.float64, copy=True) for j in i)
+            for i in witness_inp
+        )
+        target = tuple(np.array(i, dtype=np.float64, copy=True) for i in target_inp)
+
+        # make numpy arrays immutable
+        for w_sequence in witness:
+            for channel in w_sequence:
+                channel.flags.writeable = False
+        for t_sequence in target:
+            t_sequence.flags.writeable = False
+
+        # check that sequence lengths match
+        assert len(witness) > 0, "Creation of empty datasets is not allowd"
+        assert len(target) == len(
+            witness
+        ), "Target and witness data must hold same number of sequences"
+        for idx_sequence, (w, t) in enumerate(zip(witness, target)):
+            assert len(w) > 0, "Creation of empty datasets is not allowed"
+
+            for idx_channel, wi in enumerate(w):
+                assert len(t) == len(
+                    wi
+                ), f"Witness channel {idx_channel} int sequence {idx_sequence} has {len(wi)} sequences, but target has {len(t)}!"
+        return witness, target
+
+    def get_min_sequence_len(self, separate=False) -> int | Tuple[int, int]:
+        """Get the length of the shortest squence in the dataset"""
+        min_cond = min(len(i) for i in self.target_conditioning)
+        min_eval = min(len(i) for i in self.target_evaluation)
+        if separate:
+            return min_cond, min_eval
+        return min(min_cond, min_eval)
+
+    @staticmethod
+    def _hash_wt_pair(witness: Sequence[Sequence], target: Sequence):
+        """Calcualte a hash value for a pair of witness and target values"""
+        hashes = 0
+        for w_sequence in witness:
+            for channel in w_sequence:
+                hashes ^= hash_function(channel)
+        for t_sequence in target:
+            hashes ^= hash_function(t_sequence)
+        return hashes
+
+    def __hash__(self) -> int:
+        # Python built-in hash() is randomly seeded, thus using a custom hash function is required
+        hashes = hash_function(struct.pack("d", self.sample_rate) + self.name.encode())
+        hashes ^= self._hash_wt_pair(
+            self.witness_conditioning, self.target_conditioning
+        )
+        hashes ^= self._hash_wt_pair(self.witness_evaluation, self.target_evaluation)
+        return hashes
 
 
 class TestDataGenerator:
@@ -79,7 +192,6 @@ class TestDataGenerator:
         :param N: number of samples
 
         :return: witness signal, target signal
-
         """
         t_c = self.scaled_whitenoise(n)
         w_n = (
@@ -89,6 +201,57 @@ class TestDataGenerator:
         t_n = self.scaled_whitenoise(n) * self.target_noise_level
 
         return (t_c + w_n) * self.transfer_function, (t_c + t_n)
+
+    def generate_multiple(self, n: Sequence | NDArray) -> tuple[Sequence, Sequence]:
+        """Generate sequences of samples
+
+        :param N: Tuple with the length of the sequences
+
+        :return: witness signals, target signals
+        """
+        witness = []
+        target = []
+        for w, t in (self.generate(n_i) for n_i in n):
+            witness.append(w)
+            target.append(t)
+        return witness, target
+
+    def dataset(
+        self,
+        n_condition: Sequence | NDArray,
+        n_evaluation: Sequence | NDArray,
+        sample_rate: float = 1.0,
+        name: Optional[str] = None,
+    ) -> EvaluationDataset:
+        """Generate an EvaluationDataset
+
+        :param n_condition:  Sequence of integers indicating the number of conditioning samples generated per sample sequence
+        :param n_evaluation: Number of evaluation samples
+        :param sample_rate: (Optional) Sample rate for the generate EvaluationDataset
+        :param name: (Optional) Specify the name of the EvaluationDataset
+
+        Example:
+        >>> # generate two sequences of 100 samples each of conditioning data and one 100 sample sequence of evaluation data
+        >>> import saftig as sg
+        >>> ds = sg.evaluation.TestDataGenerator().dataset((100, 100), (100,))
+        """
+        # ensure the input parameters are 1D arrays of unsigned integers
+        n_condition = np.array(n_condition, dtype=np.uint)
+        n_evaluation = np.array(n_evaluation, dtype=np.uint)
+        if len(n_condition.shape) != 1 or len(n_evaluation.shape) != 1:
+            raise ValueError("Parameters must be sequences of integers. ")
+
+        cond_data = self.generate_multiple(n_condition)
+        eval_data = self.generate_multiple(n_evaluation)
+
+        return EvaluationDataset(
+            sample_rate,
+            cond_data[0],
+            cond_data[1],
+            eval_data[0],
+            eval_data[1],
+            name=name if name else "Unnamed",
+        )
 
 
 def measure_runtime(
