@@ -77,3 +77,17 @@ py.install_sources(
   pure: false,
   subdir: 'saftig/external'
 )
+
+########################################
+# saftig.evaluation
+python_sources_common = [
+  'saftig/common/__init__.py',
+  'saftig/common/common.py',
+]
+
+# install the saftig.external module
+py.install_sources(
+  python_sources_common,
+  pure: false,
+  subdir: 'saftig/common'
+)

@@ -4,9 +4,12 @@ from typing import Optional, Type, TypeVar
 from collections.abc import Sequence
 from dataclasses import dataclass, asdict, fields
 import warnings
+import inspect
 
 import numpy as np
 from numpy.typing import NDArray
+
+from ..common import hash_function, hash_object_list
 
 # create a type variable that can be any instance of a Filter subclass
 FilterTypeT = TypeVar("FilterTypeT", bound="FilterBase")
@@ -54,6 +57,7 @@ def handle_from_dict(init_func):
                 setattr(self, key, from_dict[key])
         else:
             init_func(self, *args, **kwargs)
+            self.init_parameters = list(args) + [kwargs[key] for key in sorted(kwargs)]
 
     return wrapper
 
@@ -255,3 +259,25 @@ class FilterBase:
         # pickles are disable for security reasons
         filter_dict = dict(np.load(filename, allow_pickle=False))
         return cls.from_dict(filter_dict)
+
+    @classmethod
+    def _file_hash(cls: Type[FilterTypeT]) -> int:
+        """Calculates a hash value based on the file in which this method was defined."""
+        with open(inspect.getfile(cls), "rb") as f:
+            script = f.read()
+        return hash_function(script)
+
+    def method_hash(self) -> int:
+        """Returns a hash of the method and parameters
+        NOTE: This is not a hash of the conditioned filter!
+        Thus, the same filter configuration applied to a different dataset will result in the same hash!
+        """
+        if not hasattr(self, "init_parameters"):
+            raise NotImplementedError(
+                "Filter instances loaded from file do not support method_hash()"
+            )
+
+        hashes = self._file_hash()
+        hashes ^= FilterBase._file_hash()
+        hashes ^= hash_object_list(self.init_parameters)  # pylint: disable=no-member
+        return hashes

@@ -199,3 +199,13 @@ class TestFilter:
                 self.assertRaises(
                     NotImplementedError, self.target_filter.load, TEST_FILE
                 )
+
+    def test_hashing(self):
+        """Check that hashing works for the filter instances"""
+        old_hash = None
+        for filt in self.instantiate_filters(10, n_channel=2):
+            new_hash = filt.method_hash()
+
+            self.assertIsInstance(new_hash, int)
+            self.assertNotEqual(new_hash, old_hash)
+            old_hash = new_hash

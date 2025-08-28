@@ -4,19 +4,14 @@ from typing import Any, Optional, Tuple
 from collections.abc import Sequence
 from timeit import timeit
 from dataclasses import dataclass
-import hashlib
 import struct
 
 import numpy as np
 from numpy.typing import NDArray
 
 from .common import total_power
+from ..common import hash_function
 from ..filtering import FilterBase
-
-
-def hash_function(data: bytes) -> int:
-    """The hash function used to identify similar datasets, methods, configurations, .."""
-    return int.from_bytes(hashlib.sha1(data).digest(), "big")
 
 
 @dataclass
