@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, asdict, fields
 import warnings
 import inspect
+import functools
 
 import numpy as np
 from numpy.typing import NDArray
@@ -50,6 +51,7 @@ def handle_from_dict(init_func):
     """
     from_dict_key = "_from_dict"
 
+    @functools.wraps(init_func)
     def wrapper(self, *args, **kwargs):
         if from_dict_key in kwargs:
             from_dict = kwargs[from_dict_key]
