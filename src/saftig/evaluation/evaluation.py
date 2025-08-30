@@ -1,122 +1,16 @@
 """Collection of tools for the evaluation and testing of filters"""
 
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Type, Generator
 from collections.abc import Sequence
 from timeit import timeit
-from dataclasses import dataclass
-import struct
 
 import numpy as np
 from numpy.typing import NDArray
 
 from .common import total_power
-from ..common import hash_function
+from .dataset import EvaluationDataset
+from .metrics import EvaluationMetric, EvaluationMetricScalar
 from ..filtering import FilterBase
-
-
-@dataclass
-class EvaluationDataset:
-    """A representation of a dataset for the evaluation of noise mitigation methods.
-
-    Provided sequences will be stored as immutable float64 numpy arrays.
-
-    :param sample_rate: Sample rate in Hz
-    :param witness_conditioning: witness channel data for the conditioning
-        format: witness_conditioning[sequence_idx][channel_idx][sample_idx]
-    :param target_conditioning: target channel data for the conditioning
-        format: witness_conditioning[sequence_idx][sample_idx]
-    :param witness_conditioning: witness channel data for the evaluation
-    :param target_conditioning: target channel data for the evaluation
-    :param name: (Optional) a string describing the dataset
-    """
-
-    sample_rate: float
-    witness_conditioning: Sequence[Sequence[NDArray]]
-    target_conditioning: Sequence[NDArray]
-    witness_evaluation: Sequence[Sequence[NDArray]]
-    target_evaluation: Sequence[NDArray]
-    name: str
-
-    def __init__(
-        self,
-        sample_rate: float,
-        witness_conditioning: Sequence[Sequence[NDArray]],
-        target_conditioning: Sequence[NDArray],
-        witness_evaluation: Sequence[Sequence[NDArray]],
-        target_evaluation: Sequence[NDArray],
-        name: str = "Unnamed",
-    ):
-        self.sample_rate = float(sample_rate)
-        self.witness_conditioning, self.target_conditioning = self._prepare_dataset(
-            witness_conditioning, target_conditioning
-        )
-        self.witness_evaluation, self.target_evaluation = self._prepare_dataset(
-            witness_evaluation, target_evaluation
-        )
-        self.name = name
-
-        if not isinstance(name, str):
-            raise ValueError("name must be a string")
-
-    @staticmethod
-    def _prepare_dataset(
-        witness_inp, target_inp
-    ) -> Tuple[Sequence[Sequence[NDArray]], Sequence[NDArray]]:
-        """Convert input to immutable np.float64 arrays and check shape"""
-        witness = tuple(
-            tuple(np.array(j, dtype=np.float64, copy=True) for j in i)
-            for i in witness_inp
-        )
-        target = tuple(np.array(i, dtype=np.float64, copy=True) for i in target_inp)
-
-        # make numpy arrays immutable
-        for w_sequence in witness:
-            for channel in w_sequence:
-                channel.flags.writeable = False
-        for t_sequence in target:
-            t_sequence.flags.writeable = False
-
-        # check that sequence lengths match
-        assert len(witness) > 0, "Creation of empty datasets is not allowd"
-        assert len(target) == len(
-            witness
-        ), "Target and witness data must hold same number of sequences"
-        for idx_sequence, (w, t) in enumerate(zip(witness, target)):
-            assert len(w) > 0, "Creation of empty datasets is not allowed"
-
-            for idx_channel, wi in enumerate(w):
-                assert len(t) == len(
-                    wi
-                ), f"Witness channel {idx_channel} int sequence {idx_sequence} has {len(wi)} sequences, but target has {len(t)}!"
-        return witness, target
-
-    def get_min_sequence_len(self, separate=False) -> int | Tuple[int, int]:
-        """Get the length of the shortest squence in the dataset"""
-        min_cond = min(len(i) for i in self.target_conditioning)
-        min_eval = min(len(i) for i in self.target_evaluation)
-        if separate:
-            return min_cond, min_eval
-        return min(min_cond, min_eval)
-
-    @staticmethod
-    def _hash_wt_pair(witness: Sequence[Sequence], target: Sequence):
-        """Calcualte a hash value for a pair of witness and target values"""
-        hashes = 0
-        for w_sequence in witness:
-            for channel in w_sequence:
-                hashes ^= hash_function(channel)
-        for t_sequence in target:
-            hashes ^= hash_function(t_sequence)
-        return hashes
-
-    def __hash__(self) -> int:
-        # Python built-in hash() is randomly seeded, thus using a custom hash function is required
-        hashes = hash_function(struct.pack("d", self.sample_rate) + self.name.encode())
-        hashes ^= self._hash_wt_pair(
-            self.witness_conditioning, self.target_conditioning
-        )
-        hashes ^= self._hash_wt_pair(self.witness_evaluation, self.target_evaluation)
-        return hashes
 
 
 class TestDataGenerator:
@@ -294,6 +188,110 @@ def measure_runtime(
         times_apply.append(t_pred)
 
     return times_conditioning, times_apply
+
+
+class EvaluationRun:
+    """
+    Representation of an evaluation run
+
+    :param method_configurations: A list of tuples with the following format
+        [(filter_technique, [{'n_filter': 1024, ..}, ..]), ..]
+    :param dataset: An EvaluationDataset instance
+    :param optimization_metric: The optimization metric by which the optimum is selected
+    :param metrics: All metrics which will be exported
+    :param name: (optional) name of the evaluation run
+    """
+
+    def __init__(
+        self,
+        method_configurations: Sequence[tuple[Type[FilterBase], Sequence]],
+        dataset: EvaluationDataset,
+        optimization_metric: EvaluationMetricScalar,
+        metrics: Optional[Sequence[EvaluationMetric]] = None,
+        name: str = "unnamed",
+    ):
+        # check that input data format
+        for filter_technique, configurations in method_configurations:
+            if not issubclass(filter_technique, FilterBase):
+                raise TypeError(
+                    "Only filtering techniques with the FilterBase interface are supported."
+                )
+            if len(configurations) < 0:
+                raise TypeError(
+                    "At least one parameter configuration must be supported."
+                )
+            for config in configurations:
+                if not isinstance(config, dict):
+                    raise TypeError("Filter configurations must be dictionaries.")
+
+        if not isinstance(dataset, EvaluationDataset):
+            raise TypeError("Dataset must be an EvaluationDataset instance.")
+        if not isinstance(optimization_metric, EvaluationMetricScalar):
+            raise TypeError(
+                "The optimization_metric must be an instance of an EvaluationMetricScalar."
+            )
+        if metrics is not None:
+            for metric in metrics:
+                if not isinstance(metric, EvaluationMetric):
+                    raise TypeError(
+                        "The metrics must be instances of an EvaluationMetric."
+                    )
+
+        self.method_configurations = method_configurations
+        self.dataset = dataset
+        self.optimization_metric = optimization_metric
+        self.metrics = metrics if metrics else []
+        self.name = name
+
+        self.all_configurations_list = None
+
+    def get_all_configurations(self):
+        """Returns a list of all unique (filter_technique, configuration) pairs."""
+        if self.all_configurations_list is None:
+            self.all_configurations_list = []
+
+            for filter_technique, configurations in self.method_configurations:
+                for conf in configurations:
+                    new_value = (filter_technique, conf)
+                    if new_value not in self.all_configurations_list:
+                        self.all_configurations_list.append(new_value)
+
+        return self.all_configurations_list
+
+    def run(self, select: Optional[int] = None) -> Generator[
+        Tuple[Sequence[NDArray], EvaluationMetricScalar, Sequence[EvaluationMetric]],
+        None,
+        None,
+    ]:
+        """Execute the evaluation run
+
+        :param select: select one specific run from the list yielded by get_all_configurations
+
+        :return: generates (Prediction, optimization_metric, other_metrics) objects
+        """
+        # generate list of to-be-executed evaluations
+        configurations = self.get_all_configurations()
+        if select is not None:
+            configurations = [configurations[select]]
+
+        # run evaluations
+        for filter_technique, conf in configurations:
+            filt = filter_technique(**conf)
+            filt.condition(
+                self.dataset.witness_conditioning, self.dataset.target_conditioning
+            )
+            pred = filt.apply(
+                self.dataset.witness_evaluation, self.dataset.target_evaluation
+            )
+
+            optimization_metric_result = self.optimization_metric.apply(
+                pred, self.dataset
+            )
+            metric_results = [
+                metric.apply(pred, self.dataset) for metric in self.metrics
+            ]
+
+            yield pred, optimization_metric_result, metric_results
 
 
 def residual_power_ratio(

@@ -21,6 +21,8 @@ py.install_sources(
 python_sources = [
   'saftig/evaluation/__init__.py',
   'saftig/evaluation/common.py',
+  'saftig/evaluation/dataset.py',
+  'saftig/evaluation/metrics.py',
   'saftig/evaluation/evaluation.py',
 ]
 

@@ -10,7 +10,7 @@ import functools
 import numpy as np
 from numpy.typing import NDArray
 
-from ..common import hash_function, hash_object_list
+from ..common import hash_function, hash_function_int, hash_object_list
 
 # create a type variable that can be any instance of a Filter subclass
 FilterTypeT = TypeVar("FilterTypeT", bound="FilterBase")
@@ -263,7 +263,7 @@ class FilterBase:
         return cls.from_dict(filter_dict)
 
     @classmethod
-    def _file_hash(cls: Type[FilterTypeT]) -> int:
+    def _file_hash(cls: Type[FilterTypeT]) -> bytes:
         """Calculates a hash value based on the file in which this method was defined."""
         with open(inspect.getfile(cls), "rb") as f:
             script = f.read()
@@ -280,6 +280,6 @@ class FilterBase:
             )
 
         hashes = self._file_hash()
-        hashes ^= FilterBase._file_hash()
-        hashes ^= hash_object_list(self.init_parameters)  # pylint: disable=no-member
-        return hashes
+        hashes += FilterBase._file_hash()
+        hashes += hash_object_list(self.init_parameters)  # pylint: disable=no-member
+        return hash_function_int(hashes)
