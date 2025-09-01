@@ -22,9 +22,7 @@ cweb: test_coverage
 
 linter:
 	./tooling/run_linter.sh
-linter_testing:
-	./tooling/run_linter_tests.sh
-lt: linter_testing
+pylint: linter
 
 mypy:
 	./tooling/run_mypy.sh
@@ -48,4 +46,4 @@ testpublish:
 	python -m build -s
 	twine upload --repository testpypi dist/*
 
-.PHONY: all, doc, view, test, test_time, linter, coverage, cweb, linter_testing, lt, mypy, build, clean, testpublish, ie, test_coverage
+.PHONY: all, doc, view, test, test_time, linter, pylint, coverage, cweb, lt, mypy, build, clean, testpublish, ie, test_coverage
