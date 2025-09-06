@@ -36,17 +36,6 @@ py.install_sources(
 
 ########################################
 # saftig.signal
-# get numpy dependencies
-numpy_dep = dependency('numpy', required: true)
-
-# define build instructions for c extensions
-extensions = py.extension_module(
-  '_lms_c',
-  'saftig/filtering/_lms_c/_lms_c.cpp',
-  dependencies: numpy_dep,
-  install: true,
-  subdir: 'saftig/filtering',
-)
 
 python_sources = [
   'saftig/filtering/__init__.py',
@@ -54,7 +43,6 @@ python_sources = [
   'saftig/filtering/wf.py',
   'saftig/filtering/uwf.py',
   'saftig/filtering/lms.py',
-  'saftig/filtering/lms_c.py',
   'saftig/filtering/polylms.py',
 ]
 

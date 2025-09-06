@@ -25,7 +25,6 @@ if __name__ == "__main__":
     filt = saftig.filtering.PolynomialLMSFilter(
         N_filter, 0, N_channel, step_scale=0.1, order=3, coefficient_clipping=5
     )
-    # filt = saftig.filtering.LMSFilterC(N_filter, 0, N_channel, step_scale=0.1)
     # filt = saftig.filtering.external.SpicypyWienerFilter(N_filter, 0, N_channel)
 
     filt.condition(w, t)
