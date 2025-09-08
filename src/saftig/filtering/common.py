@@ -6,11 +6,12 @@ from dataclasses import dataclass, asdict, fields
 import warnings
 import inspect
 import functools
+from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
 
-from ..common import hash_function, hash_function_int, hash_object_list
+from ..common import hash_function, hash_object_list
 
 # create a type variable that can be any instance of a Filter subclass
 FilterTypeT = TypeVar("FilterTypeT", bound="FilterBase")
@@ -22,7 +23,7 @@ def make_2d_array(A: Sequence | Sequence[Sequence] | NDArray) -> NDArray:
 
     :param A: input array
 
-    :return: exteneded array
+    :return: extended array
 
     :raises: ValueError if the input shape is not compatible
 
@@ -215,23 +216,26 @@ class FilterBase:
         return cls(1, 0, _from_dict=clean_dict)
 
     @classmethod
-    def _make_filename(cls: Type[FilterTypeT], filename):
+    def make_filename(cls: Type[FilterTypeT], filename: str | Path):
+        """Append the file type of save files for this class to the given filename, if it is not already present"""
+        if isinstance(filename, Path):
+            filename = str(filename)
         ending = "." + cls.filter_name + ".npz"  # pylint: disable=no-member
         if not filename.endswith(ending):
             filename += ending
         return filename
 
-    def save(self, filename, warn_incompatible=False):
+    def save(self, filename: str | Path, warn_incompatible=False):
         """Save the filter state as a numpy file
 
         The given filename will be autocompleted with a  ".<filter_name>.npz"
         filename extension, unless a matching extension is detected.
 
         warn_incompatible: set to True to warn for object types might not
-                           compatible with np.save(allow_pickle=False) during developement
+                           compatible with np.save(allow_pickle=False) during development
         """
         serialization_data = self.as_dict()
-        filename = self._make_filename(filename)
+        filename = self.make_filename(filename)
 
         # this is intended to quickly identify problematic values when developing a new filter
         if warn_incompatible:
@@ -256,7 +260,7 @@ class FilterBase:
                 "Saving and loading is not supported for this filter type."
             )
 
-        filename = cls._make_filename(filename)
+        filename = cls.make_filename(filename)
 
         # pickles are disable for security reasons
         filter_dict = dict(np.load(filename, allow_pickle=False))
@@ -269,7 +273,7 @@ class FilterBase:
             script = f.read()
         return hash_function(script)
 
-    def method_hash(self) -> int:
+    def method_hash(self) -> bytes:
         """Returns a hash of the method and parameters
         NOTE: This is not a hash of the conditioned filter!
         Thus, the same filter configuration applied to a different dataset will result in the same hash!
@@ -282,4 +286,9 @@ class FilterBase:
         hashes = self._file_hash()
         hashes += FilterBase._file_hash()
         hashes += hash_object_list(self.init_parameters)  # pylint: disable=no-member
-        return hash_function_int(hashes)
+        return hash_function(hashes)
+
+    @property
+    def method_filename_part(self) -> str:
+        """string that can be used in a file name"""
+        return f"{self.filter_name}_{self.n_filter}_{self.n_channel}_{self.idx_target}"

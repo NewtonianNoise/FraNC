@@ -3,21 +3,34 @@
 import hashlib
 from collections.abc import Sequence
 import struct
+from base64 import b64encode
 import numpy as np
+
+
+def bytes2int(data: bytes) -> int:
+    """Convert bytes to an integer"""
+    return int.from_bytes(data, "big")
 
 
 def hash_function(data: bytes) -> bytes:
     """The hash function used to identify similar datasets, methods, configurations, ..
-    returns a bytes object
+    Returns a bytes object
     """
     return hashlib.sha1(data, usedforsecurity=False).digest()
 
 
 def hash_function_int(data: bytes) -> int:
     """The hash function used to identify similar datasets, methods, configurations, ..
-    returns an integer
+    Returns an integer
     """
-    return int.from_bytes(hash_function(data), "big")
+    return bytes2int(hash_function(data))
+
+
+def hash_function_str(data: bytes) -> str:
+    """The hash function used to identify similar datasets, methods, configurations, ..
+    Returns an base64 string
+    """
+    return b64encode(hash_function(data)).decode().replace("/", "#")
 
 
 def hash_object_list(objects: Sequence) -> bytes:

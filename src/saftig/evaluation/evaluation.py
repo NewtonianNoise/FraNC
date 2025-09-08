@@ -2,6 +2,8 @@
 
 from typing import Any, Optional, Tuple, Type, Generator
 from collections.abc import Sequence
+import os
+from pathlib import Path
 from timeit import timeit
 
 import numpy as np
@@ -11,6 +13,7 @@ from .common import total_power
 from .dataset import EvaluationDataset
 from .metrics import EvaluationMetric, EvaluationMetricScalar
 from ..filtering import FilterBase
+from ..common import hash_function_str
 
 
 class TestDataGenerator:
@@ -209,6 +212,7 @@ class EvaluationRun:
         optimization_metric: EvaluationMetricScalar,
         metrics: Optional[Sequence[EvaluationMetric]] = None,
         name: str = "unnamed",
+        directory: str = ".",
     ):
         # check that input data format
         for filter_technique, configurations in method_configurations:
@@ -242,10 +246,11 @@ class EvaluationRun:
         self.optimization_metric = optimization_metric
         self.metrics = metrics if metrics else []
         self.name = name
+        self.directory = Path(directory)
 
-        self.all_configurations_list = None
+        self.all_configurations_list: list | None = None
 
-    def get_all_configurations(self):
+    def get_all_configurations(self) -> list:
         """Returns a list of all unique (filter_technique, configuration) pairs."""
         if self.all_configurations_list is None:
             self.all_configurations_list = []
@@ -257,6 +262,79 @@ class EvaluationRun:
                         self.all_configurations_list.append(new_value)
 
         return self.all_configurations_list
+
+    def _create_folder_structure(self) -> None:
+        """Create standardized folder structure for results"""
+        folders = [
+            self.directory / "conditioned_filters",
+            self.directory / "predictions",
+            self.directory / "report",
+            self.directory / "report" / "plots",
+            self.directory / "report" / "texts",
+        ]
+        for path in folders:
+            try:
+                os.mkdir(path)
+            except FileExistsError:
+                pass
+
+    @staticmethod
+    def save_np_array_list(data: list[NDArray], filename: str) -> None:
+        """Save a list of numpy arrays to a .npz file"""
+        np.savez(filename, allow_pickle=False, *data)
+
+    @staticmethod
+    def load_np_array_list(filename: str) -> list[NDArray]:
+        """Load a list of numpy arrays from a .npz file"""
+        data = np.load(filename, allow_pickle=False)
+        keys = list(sorted(data, key=lambda x: int(x[4:])))
+        for key in keys:
+            if not key.startswith("arr_"):
+                raise ValueError("Numpy file does not match expected format.")
+        print(keys)
+        return [data[key] for key in keys]
+
+    def get_prediction(self, filter_technique: type[FilterBase], conf: dict):
+        """Load the prediction created by applying the given filter and configuration to the dataset"""
+        self._create_folder_structure()
+
+        filt = filter_technique(**conf)
+
+        result_hash = hash_function_str(filt.method_hash() + self.dataset.hash_bytes())
+        result_filename = filt.method_filename_part + "_" + result_hash
+        conditioned_filter_path = (
+            self.directory / "conditioned_filters" / filt.make_filename(result_filename)
+        )
+        prediction_path = self.directory / "predictions" / (result_filename + ".npz")
+
+        status = "loaded from file"
+        if prediction_path.exists():
+            pred = self.load_np_array_list(prediction_path)
+        else:
+            status = "calculated from loaded filter"
+            # load conditioned filter or run conditioning
+            if conditioned_filter_path.exists():
+                filt = filter_technique.load(conditioned_filter_path)
+            else:
+                status = "ran conditioning and calculated prediction"
+                # NOTE: remove the hard coding to the first sequence once filters support multiple sequences
+                filt.condition(
+                    self.dataset.witness_conditioning[0],
+                    self.dataset.target_conditioning[0],
+                )
+                if filt.supports_saving_loading():
+                    filt.save(conditioned_filter_path)
+
+            # create prediction
+            # NOTE: remove the hard coding to the first sequence once filters support multiple sequences
+            pred = filt.apply(
+                self.dataset.witness_evaluation[0],
+                self.dataset.target_evaluation[0],
+            )
+            pred = [pred]
+            self.save_np_array_list(pred, prediction_path)
+        print(filter_technique.filter_name, f"({status})")
+        return pred
 
     def run(self, select: Optional[int] = None) -> Generator[
         Tuple[Sequence[NDArray], EvaluationMetricScalar, Sequence[EvaluationMetric]],
@@ -274,15 +352,15 @@ class EvaluationRun:
         if select is not None:
             configurations = [configurations[select]]
 
+        # NOTE: This can be removed once filters support lists of sequences
+        if len(self.dataset.target_evaluation) != 1:
+            raise NotImplementedError(
+                "Currently only datasets with a single sequence are supported."
+            )
+
         # run evaluations
         for filter_technique, conf in configurations:
-            filt = filter_technique(**conf)
-            filt.condition(
-                self.dataset.witness_conditioning, self.dataset.target_conditioning
-            )
-            pred = filt.apply(
-                self.dataset.witness_evaluation, self.dataset.target_evaluation
-            )
+            pred = self.get_prediction(filter_technique, conf)
 
             optimization_metric_result = self.optimization_metric.apply(
                 pred, self.dataset
@@ -290,6 +368,11 @@ class EvaluationRun:
             metric_results = [
                 metric.apply(pred, self.dataset) for metric in self.metrics
             ]
+
+            print("\ttarget: ", optimization_metric_result.text)
+
+            for metric in metric_results:
+                print("\t", metric.text)
 
             yield pred, optimization_metric_result, metric_results
 

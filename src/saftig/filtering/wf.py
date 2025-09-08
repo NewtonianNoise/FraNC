@@ -1,4 +1,4 @@
-"""Clasical static Wiener filter"""
+"""Classical static Wiener filter"""
 
 from typing import Tuple, Optional
 from collections.abc import Sequence

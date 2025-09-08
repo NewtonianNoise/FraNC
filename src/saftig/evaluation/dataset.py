@@ -8,7 +8,7 @@ import struct
 import numpy as np
 from numpy.typing import NDArray
 
-from ..common import hash_function, hash_function_int, hash_object_list
+from ..common import hash_function, hash_object_list, bytes2int
 
 
 @dataclass
@@ -134,7 +134,8 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
             hashes += hash_object_list(signal)
         return hashes
 
-    def __hash__(self) -> int:
+    def hash_bytes(self) -> bytes:
+        """return a hash over the dataset data as a bytes object"""
         # Python built-in hash() is randomly seeded, thus using a custom hash function is required
         hashes = hash_function(struct.pack("d", self.sample_rate) + self.name.encode())
         hashes += self._hash_wts_data(
@@ -145,4 +146,7 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
         hashes += self._hash_wts_data(
             self.witness_evaluation, self.target_evaluation, self.signal_evaluation
         )
-        return hash_function_int(hashes)
+        return hash_function(hashes)
+
+    def __hash__(self) -> int:
+        return bytes2int(self.hash_bytes())

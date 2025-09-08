@@ -206,6 +206,6 @@ class TestFilter:
         for filt in self.instantiate_filters(10, n_channel=2):
             new_hash = filt.method_hash()
 
-            self.assertIsInstance(new_hash, int)
+            self.assertIsInstance(new_hash, bytes)
             self.assertNotEqual(new_hash, old_hash)
             old_hash = new_hash
