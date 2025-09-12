@@ -1,7 +1,7 @@
 """Collection of tools for the evaluation and testing of filters"""
 
-from typing import Any, Optional, Tuple, Type, Generator
-from collections.abc import Sequence
+from typing import Any
+from collections.abc import Sequence, Generator
 import os
 from pathlib import Path
 from timeit import timeit
@@ -14,6 +14,9 @@ from .dataset import EvaluationDataset
 from .metrics import EvaluationMetric, EvaluationMetricScalar
 from ..filtering import FilterBase
 from ..common import hash_function_str
+
+NDArrayF = NDArray[np.floating]
+NDArrayU = NDArray[np.uint]
 
 
 class TestDataGenerator:
@@ -47,7 +50,7 @@ class TestDataGenerator:
         target_noise_level: float = 0,
         transfer_function: float = 1,
         sample_rate: float = 1.0,
-        rng_seed: Optional[int] = None,
+        rng_seed: int | None = None,
     ):
         self.witness_noise_level = np.array(witness_noise_level)
         self.target_noise_level = np.array(target_noise_level)
@@ -69,7 +72,7 @@ class TestDataGenerator:
         assert len(self.transfer_function.shape) == 0
         assert self.sample_rate > 0
 
-    def scaled_whitenoise(self, shape) -> NDArray:
+    def scaled_whitenoise(self, shape) -> NDArrayF:
         """Generate whitenoise with an ASD of one
 
         :param shape: shape of the new array
@@ -78,7 +81,7 @@ class TestDataGenerator:
         """
         return self.rng.normal(0, np.sqrt(self.sample_rate / 2), shape)
 
-    def generate(self, n: int) -> tuple[NDArray, NDArray]:
+    def generate(self, n: int) -> tuple[NDArrayF, NDArrayF]:
         """Generate sequences of samples
 
         :param N: number of samples
@@ -94,7 +97,9 @@ class TestDataGenerator:
 
         return (t_c + w_n) * self.transfer_function, (t_c + t_n)
 
-    def generate_multiple(self, n: Sequence | NDArray) -> tuple[Sequence, Sequence]:
+    def generate_multiple(
+        self, n: Sequence[int] | NDArrayU
+    ) -> tuple[Sequence, Sequence]:
         """Generate sequences of samples
 
         :param N: Tuple with the length of the sequences
@@ -110,10 +115,10 @@ class TestDataGenerator:
 
     def dataset(
         self,
-        n_condition: Sequence | NDArray,
-        n_evaluation: Sequence | NDArray,
+        n_condition: Sequence[int] | NDArray[np.uint],
+        n_evaluation: Sequence[int] | NDArray[np.uint],
         sample_rate: float = 1.0,
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> EvaluationDataset:
         """Generate an EvaluationDataset
 
@@ -207,10 +212,10 @@ class EvaluationRun:
 
     def __init__(
         self,
-        method_configurations: Sequence[tuple[Type[FilterBase], Sequence]],
+        method_configurations: Sequence[tuple[type[FilterBase], Sequence]],
         dataset: EvaluationDataset,
         optimization_metric: EvaluationMetricScalar,
-        metrics: Optional[Sequence[EvaluationMetric]] = None,
+        metrics: Sequence[EvaluationMetric] | None = None,
         name: str = "unnamed",
         directory: str = ".",
     ):
@@ -279,12 +284,12 @@ class EvaluationRun:
                 pass
 
     @staticmethod
-    def save_np_array_list(data: list[NDArray], filename: str) -> None:
+    def save_np_array_list(data: list[NDArrayF], filename: str | Path) -> None:
         """Save a list of numpy arrays to a .npz file"""
         np.savez(filename, allow_pickle=False, *data)
 
     @staticmethod
-    def load_np_array_list(filename: str) -> list[NDArray]:
+    def load_np_array_list(filename: str | Path) -> list[NDArrayF]:
         """Load a list of numpy arrays from a .npz file"""
         data = np.load(filename, allow_pickle=False)
         keys = list(sorted(data, key=lambda x: int(x[4:])))
@@ -294,7 +299,7 @@ class EvaluationRun:
         print(keys)
         return [data[key] for key in keys]
 
-    def get_prediction(self, filter_technique: type[FilterBase], conf: dict):
+    def get_prediction(self, filter_technique: type[FilterBase], conf: dict[str, Any]):
         """Load the prediction created by applying the given filter and configuration to the dataset"""
         self._create_folder_structure()
 
@@ -302,7 +307,7 @@ class EvaluationRun:
 
         result_hash = hash_function_str(filt.method_hash() + self.dataset.hash_bytes())
         result_filename = filt.method_filename_part + "_" + result_hash
-        conditioned_filter_path = (
+        conditioned_filter_path: Path = (
             self.directory / "conditioned_filters" / filt.make_filename(result_filename)
         )
         prediction_path = self.directory / "predictions" / (result_filename + ".npz")
@@ -336,8 +341,8 @@ class EvaluationRun:
         print(filter_technique.filter_name, f"({status})")
         return pred
 
-    def run(self, select: Optional[int] = None) -> Generator[
-        Tuple[Sequence[NDArray], EvaluationMetricScalar, Sequence[EvaluationMetric]],
+    def run(self, select: int | None = None) -> Generator[
+        tuple[Sequence[NDArrayF], EvaluationMetricScalar, Sequence[EvaluationMetric]],
         None,
         None,
     ]:

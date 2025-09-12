@@ -1,7 +1,7 @@
 """Shared functionality for all other modules"""
 
-from typing import Optional, Type, TypeVar
-from collections.abc import Sequence
+from typing import TypeVar, Any
+from collections.abc import Sequence, Callable
 from dataclasses import dataclass, asdict, fields
 import warnings
 import inspect
@@ -43,7 +43,7 @@ def make_2d_array(A: Sequence | Sequence[Sequence] | NDArray) -> NDArray:
     raise ValueError("Input must be 1D or 2D array")
 
 
-def handle_from_dict(init_func):
+def handle_from_dict(init_func: Callable):
     """A decorator for the init functions of classes derived from FilterBase
 
     If the _from_dict keyword argument is passed, the __init__() function is ignored
@@ -85,7 +85,7 @@ class FilterBase:
     n_filter: int
     n_channel: int
     idx_target: int
-    # filter_name: str # must be implemented in children
+    filter_name = "FilterBase"  # must be implemented in children
 
     @handle_from_dict
     def __init__(self, n_filter: int, idx_target: int, n_channel: int = 1):
@@ -107,15 +107,15 @@ class FilterBase:
             ), "BaseFilter childs must declare their name"
 
         # set a filter name for the base filter for testing
-        self.filter_name: str = (
-            self.filter_name if hasattr(self, "filter_name") else "FitlerBase"
-        )
+        # self.filter_name: str = (
+        #     self.filter_name if hasattr(self, "filter_name") else "FitlerBase"
+        # )
 
         # this can be set to false after the super().__init__() statement in child
         self.requires_apply_target = True
 
     @staticmethod
-    def supports_saving_loading():
+    def supports_saving_loading() -> bool:
         """Indicates whether saving and loading is supported
         Due to the way dataclasses work with inheritance, class values with default values don't work in the parent dataclass.
         Thus, this is a function
@@ -124,14 +124,15 @@ class FilterBase:
 
     def condition(
         self,
-        witness: Sequence | Sequence[Sequence],
-        target: Sequence,
-    ) -> None:
+        witness: Sequence | Sequence[Sequence] | NDArray,
+        target: Sequence | NDArray,
+    ):
         """Use an input dataset to condition the filter
 
         :param witness: Witness sensor data
         :param target: Target sensor data
         """
+        del witness, target  # mark as unused for checkers
         raise NotImplementedError(
             "This function must be implemented by the child class!"
         )
@@ -152,6 +153,7 @@ class FilterBase:
 
         :return: prediction
         """
+        del witness, target, pad, update_state  # mark as unused
         raise NotImplementedError(
             "This function must be implemented by the child class!"
         )
@@ -159,7 +161,7 @@ class FilterBase:
     def check_data_dimensions(
         self,
         witness: Sequence | NDArray,
-        target: Optional[Sequence | NDArray] = None,
+        target: Sequence | NDArray | None = None,
     ) -> tuple[NDArray, NDArray]:
         """Check the dimensions of the provided input data and apply make_2d_array()
 
@@ -183,7 +185,7 @@ class FilterBase:
 
         return witness_npy, target_npy
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         """Returns a dictionary that represents the state of this filter."""
         if not self.supports_saving_loading():
             raise NotImplementedError(
@@ -193,7 +195,7 @@ class FilterBase:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: Type[FilterTypeT], input_dict) -> FilterTypeT:
+    def from_dict(cls: type[FilterTypeT], input_dict: dict[str, Any]) -> FilterTypeT:
         """Create a filter instance from a dictionary that was created from as_dict()"""
         # check that the dict contains all relevant keys and eliminate any extra keys
         if not cls.supports_saving_loading():
@@ -216,7 +218,7 @@ class FilterBase:
         return cls(1, 0, _from_dict=clean_dict)
 
     @classmethod
-    def make_filename(cls: Type[FilterTypeT], filename: str | Path):
+    def make_filename(cls: type[FilterTypeT], filename: str | Path):
         """Append the file type of save files for this class to the given filename, if it is not already present"""
         if isinstance(filename, Path):
             filename = str(filename)
@@ -225,7 +227,7 @@ class FilterBase:
             filename += ending
         return filename
 
-    def save(self, filename: str | Path, warn_incompatible=False):
+    def save(self, filename: str | Path, warn_incompatible: bool = False):
         """Save the filter state as a numpy file
 
         The given filename will be autocompleted with a  ".<filter_name>.npz"
@@ -249,7 +251,7 @@ class FilterBase:
         np.savez(filename, allow_pickle=False, **serialization_data)
 
     @classmethod
-    def load(cls: Type[FilterTypeT], filename) -> FilterTypeT:
+    def load(cls: type[FilterTypeT], filename) -> FilterTypeT:
         """Load a filter state from the supplied filename.
 
         The given filename will be autocompleted with a  ".<filter_name>.npz"
@@ -267,7 +269,7 @@ class FilterBase:
         return cls.from_dict(filter_dict)
 
     @classmethod
-    def _file_hash(cls: Type[FilterTypeT]) -> bytes:
+    def _file_hash(cls: type[FilterTypeT]) -> bytes:
         """Calculates a hash value based on the file in which this method was defined."""
         with open(inspect.getfile(cls), "rb") as f:
             script = f.read()

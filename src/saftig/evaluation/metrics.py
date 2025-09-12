@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, Tuple
+from typing import Any
 from collections.abc import Sequence
 import abc
 import functools
@@ -73,6 +73,7 @@ class EvaluationMetric(abc.ABC):
     dataset: EvaluationDataset
     residual: Sequence[NDArray]
     parameters: dict = {}
+    name: str
 
     # idea: initialize with the configuration, then call apply() to set data
     # apply() then returns a new instance of the metric that is configured with the data
@@ -110,11 +111,6 @@ class EvaluationMetric(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def name(self):
-        """A string representing the metric"""
-
-    @property
-    @abc.abstractmethod
     def result_full(self) -> tuple:
         """The raw data of the result"""
 
@@ -124,7 +120,7 @@ class EvaluationMetric(abc.ABC):
         return self.result_full[0]
 
     @classmethod
-    def result_to_text(cls, result_full: Tuple[float, ...]) -> str:
+    def result_to_text(cls, result_full: tuple[float, ...]) -> str:
         """String indicating the evaluation result"""
         del result_full  # mark non-used variable
         return f"{cls.name}"
@@ -165,7 +161,7 @@ class EvaluationMetricScalar(EvaluationMetric):
         return self.result_full[0]
 
     @classmethod
-    def result_to_text(cls, result_full: Tuple[float, ...]) -> str:
+    def result_to_text(cls, result_full: tuple[float, ...]) -> str:
         """String indicating the evaluation result"""
         # this default implementation works for floats
         return f"{cls.name}: {result_full[0]:f}"
@@ -190,12 +186,12 @@ class RMSMetric(EvaluationMetricScalar):
 
     @property
     @EvaluationMetric.result_full_wrapper
-    def result_full(self) -> Tuple[float]:
+    def result_full(self) -> tuple[float]:
         rms = np.sqrt(np.mean(np.square(np.concatenate(self.residual))))  # type: ignore[arg-type]
         return (rms,)
 
     @staticmethod
-    def result_to_text(result_full: Tuple[float, ...]) -> str:
+    def result_to_text(result_full: tuple[float, ...]) -> str:
         return f"Residual RMS: {result_full[0]:f}"
 
 
@@ -206,7 +202,7 @@ class MSEMetric(EvaluationMetricScalar):
 
     @property
     @EvaluationMetric.result_full_wrapper
-    def result_full(self) -> Tuple[float]:
+    def result_full(self) -> tuple[float]:
         mse = np.mean(np.square(np.concatenate(self.residual)))
         return (mse,)
 

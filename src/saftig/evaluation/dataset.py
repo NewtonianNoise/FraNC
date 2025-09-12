@@ -1,6 +1,5 @@
 """A representation of a dataset for the evaluation of noise mitigation methods."""
 
-from typing import Optional, Tuple
 from collections.abc import Sequence
 from dataclasses import dataclass
 import struct
@@ -9,6 +8,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ..common import hash_function, hash_object_list, bytes2int
+
+NDArrayF = NDArray[np.floating]
 
 
 @dataclass
@@ -28,23 +29,23 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
     """
 
     sample_rate: float
-    witness_conditioning: Sequence[Sequence[NDArray]]
-    target_conditioning: Sequence[NDArray]
-    witness_evaluation: Sequence[Sequence[NDArray]]
-    target_evaluation: Sequence[NDArray]
-    signal_conditioning: Optional[Sequence[NDArray]]
-    signal_evaluation: Optional[Sequence[NDArray]]
+    witness_conditioning: Sequence[Sequence[NDArrayF]]
+    target_conditioning: Sequence[NDArrayF]
+    witness_evaluation: Sequence[Sequence[NDArrayF]]
+    target_evaluation: Sequence[NDArrayF]
+    signal_conditioning: Sequence[NDArrayF] | None
+    signal_evaluation: Sequence[NDArrayF] | None
     name: str
 
     def __init__(
         self,
         sample_rate: float,
-        witness_conditioning: Sequence[Sequence[NDArray]],
-        target_conditioning: Sequence[NDArray],
-        witness_evaluation: Sequence[Sequence[NDArray]],
-        target_evaluation: Sequence[NDArray],
-        signal_conditioning: Optional[Sequence[NDArray]] = None,
-        signal_evaluation: Optional[Sequence[NDArray]] = None,
+        witness_conditioning: Sequence[Sequence[NDArrayF]],
+        target_conditioning: Sequence[NDArrayF],
+        witness_evaluation: Sequence[Sequence[NDArrayF]],
+        target_evaluation: Sequence[NDArrayF],
+        signal_conditioning: Sequence[NDArrayF] | None = None,
+        signal_evaluation: Sequence[NDArrayF] | None = None,
         name: str = "Unnamed",
     ):
         self.sample_rate = float(sample_rate)
@@ -67,11 +68,11 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _prepare_dataset(
-        witness_inp: Sequence[Sequence[NDArray]],
-        target_inp: Sequence[NDArray],
-        signal_inp: Optional[Sequence[NDArray]] = None,
-    ) -> Tuple[
-        Sequence[Sequence[NDArray]], Sequence[NDArray], Sequence[NDArray] | None
+        witness_inp: Sequence[Sequence[NDArrayF]],
+        target_inp: Sequence[NDArrayF],
+        signal_inp: Sequence[NDArrayF] | None = None,
+    ) -> tuple[
+        Sequence[Sequence[NDArrayF]], Sequence[NDArrayF], Sequence[NDArrayF] | None
     ]:
         """Convert input to immutable np.float64 arrays and check shape"""
         witness = tuple(
@@ -113,8 +114,11 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
                     ), f"Witness channel {idx_channel} in sequence {idx_sequence} has {len(wi)} length, but {input_name} has {len(t)}!"
         return witness, target, signal
 
-    def get_min_sequence_len(self, separate=False) -> int | Tuple[int, int]:
-        """Get the length of the shortest sequence in the dataset"""
+    def get_min_sequence_len(self, separate: bool = False) -> int | tuple[int, int]:
+        """Get the length of the shortest sequence in the dataset
+
+        :param separate: If True, returns the minimum separately for conditioning and evaluation data.
+        """
         min_cond = min(len(i) for i in self.target_conditioning)
         min_eval = min(len(i) for i in self.target_evaluation)
         if separate:
@@ -123,7 +127,9 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _hash_wts_data(
-        witness: Sequence[Sequence], target: Sequence, signal: Optional[Sequence] = None
+        witness: Sequence[Sequence[NDArrayF]],
+        target: Sequence[NDArrayF],
+        signal: Sequence[NDArrayF] | None = None,
     ):
         """Calculate a hash value for a set of witness, target, signal data"""
         hashes = b""
