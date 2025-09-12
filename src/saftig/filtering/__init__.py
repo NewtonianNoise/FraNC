@@ -14,3 +14,11 @@ all_filters = [
     LMSFilter,
     PolynomialLMSFilter,
 ]
+
+__all__ = [
+    "FilterBase",
+    "WienerFilter",
+    "UpdatingWienerFilter",
+    "LMSFilter",
+    "PolynomialLMSFilter",
+]
