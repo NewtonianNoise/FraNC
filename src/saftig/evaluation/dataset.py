@@ -23,8 +23,10 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
         format: witness_conditioning[sequence_idx][channel_idx][sample_idx]
     :param target_conditioning: target channel data for the conditioning
         format: witness_conditioning[sequence_idx][sample_idx]
-    :param witness_conditioning: witness channel data for the evaluation
-    :param target_conditioning: target channel data for the evaluation
+    :param witness_evaluation: witness channel data for the evaluation
+    :param target_evaluation: target channel data for the evaluation
+    :param signal_conditioning: (Optional) A signal that can be subtracted from the target for performance metrics
+    :param signal_evaluation: (Optional) A signal that can be subtracted from the target for performance metrics
     :param name: (Optional) a string describing the dataset
     """
 

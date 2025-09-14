@@ -106,11 +106,6 @@ class FilterBase:
                 self, "filter_name"
             ), "BaseFilter childs must declare their name"
 
-        # set a filter name for the base filter for testing
-        # self.filter_name: str = (
-        #     self.filter_name if hasattr(self, "filter_name") else "FitlerBase"
-        # )
-
         # this can be set to false after the super().__init__() statement in child
         self.requires_apply_target = True
 

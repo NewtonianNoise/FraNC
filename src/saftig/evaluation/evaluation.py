@@ -208,6 +208,8 @@ class EvaluationRun:
     :param optimization_metric: The optimization metric by which the optimum is selected
     :param metrics: All metrics which will be exported
     :param name: (optional) name of the evaluation run
+    :param directory: (optional) the directory in which results are saved
+        If results are saved, the required folder structure will be created
     """
 
     def __init__(
