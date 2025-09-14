@@ -1,6 +1,5 @@
-"""Clasical static Wiener filter"""
+"""Classical static Wiener filter"""
 
-from typing import Tuple, Optional
 from collections.abc import Sequence
 from dataclasses import dataclass
 from warnings import warn
@@ -14,7 +13,7 @@ from .common import FilterBase, make_2d_array, handle_from_dict
 
 def mean_cross_correlation_offset(
     A: Sequence | NDArray, B: Sequence | NDArray, N: int, offset: int
-) -> Sequence:
+) -> NDArray:
     """estimate the cross-correlation between A and B
     :param A: First input array
     :param B: Second input array
@@ -34,7 +33,7 @@ def wf_calculate(
     target: Sequence | NDArray,
     n_filter: int,
     idx_target: int = 0,
-) -> Tuple[NDArray, bool]:
+) -> tuple[NDArray, bool]:
     """caluclate the FIR coefficients for a wiener filter
 
     :param witness: Witness sensor data
@@ -168,9 +167,9 @@ class WienerFilter(FilterBase):
 
     def condition(
         self,
-        witness: Sequence,
-        target: Sequence,
-    ):
+        witness: Sequence | Sequence[Sequence] | NDArray,
+        target: Sequence | NDArray,
+    ) -> tuple[NDArray, bool]:
         """Use an input dataset to condition the filter
 
         :param witness: Witness sensor data
@@ -189,7 +188,7 @@ class WienerFilter(FilterBase):
     def apply(
         self,
         witness: Sequence | NDArray,
-        target: Optional[Sequence | NDArray] = None,
+        target: Sequence | NDArray | None = None,
         pad: bool = True,
         update_state: bool = False,
     ) -> NDArray:

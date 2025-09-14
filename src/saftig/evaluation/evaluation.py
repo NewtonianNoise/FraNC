@@ -1,14 +1,22 @@
 """Collection of tools for the evaluation and testing of filters"""
 
-from typing import Any, Optional
-from collections.abc import Sequence
+from typing import Any
+from collections.abc import Sequence, Generator
+import os
+from pathlib import Path
 from timeit import timeit
 
 import numpy as np
 from numpy.typing import NDArray
 
 from .common import total_power
+from .dataset import EvaluationDataset
+from .metrics import EvaluationMetric, EvaluationMetricScalar
 from ..filtering import FilterBase
+from ..common import hash_function_str
+
+NDArrayF = NDArray[np.floating]
+NDArrayU = NDArray[np.uint]
 
 
 class TestDataGenerator:
@@ -42,7 +50,7 @@ class TestDataGenerator:
         target_noise_level: float = 0,
         transfer_function: float = 1,
         sample_rate: float = 1.0,
-        rng_seed: Optional[int] = None,
+        rng_seed: int | None = None,
     ):
         self.witness_noise_level = np.array(witness_noise_level)
         self.target_noise_level = np.array(target_noise_level)
@@ -64,7 +72,7 @@ class TestDataGenerator:
         assert len(self.transfer_function.shape) == 0
         assert self.sample_rate > 0
 
-    def scaled_whitenoise(self, shape) -> NDArray:
+    def scaled_whitenoise(self, shape) -> NDArrayF:
         """Generate whitenoise with an ASD of one
 
         :param shape: shape of the new array
@@ -73,13 +81,12 @@ class TestDataGenerator:
         """
         return self.rng.normal(0, np.sqrt(self.sample_rate / 2), shape)
 
-    def generate(self, n: int) -> tuple[NDArray, NDArray]:
+    def generate(self, n: int) -> tuple[NDArrayF, NDArrayF]:
         """Generate sequences of samples
 
         :param N: number of samples
 
         :return: witness signal, target signal
-
         """
         t_c = self.scaled_whitenoise(n)
         w_n = (
@@ -89,6 +96,59 @@ class TestDataGenerator:
         t_n = self.scaled_whitenoise(n) * self.target_noise_level
 
         return (t_c + w_n) * self.transfer_function, (t_c + t_n)
+
+    def generate_multiple(
+        self, n: Sequence[int] | NDArrayU
+    ) -> tuple[Sequence, Sequence]:
+        """Generate sequences of samples
+
+        :param N: Tuple with the length of the sequences
+
+        :return: witness signals, target signals
+        """
+        witness = []
+        target = []
+        for w, t in (self.generate(n_i) for n_i in n):
+            witness.append(w)
+            target.append(t)
+        return witness, target
+
+    def dataset(
+        self,
+        n_condition: Sequence[int] | NDArray[np.uint],
+        n_evaluation: Sequence[int] | NDArray[np.uint],
+        sample_rate: float = 1.0,
+        name: str | None = None,
+    ) -> EvaluationDataset:
+        """Generate an EvaluationDataset
+
+        :param n_condition:  Sequence of integers indicating the number of conditioning samples generated per sample sequence
+        :param n_evaluation: Number of evaluation samples
+        :param sample_rate: (Optional) Sample rate for the generate EvaluationDataset
+        :param name: (Optional) Specify the name of the EvaluationDataset
+
+        Example:
+        >>> # generate two sequences of 100 samples each of conditioning data and one 100 sample sequence of evaluation data
+        >>> import saftig as sg
+        >>> ds = sg.evaluation.TestDataGenerator().dataset((100, 100), (100,))
+        """
+        # ensure the input parameters are 1D arrays of unsigned integers
+        n_condition = np.array(n_condition, dtype=np.uint)
+        n_evaluation = np.array(n_evaluation, dtype=np.uint)
+        if len(n_condition.shape) != 1 or len(n_evaluation.shape) != 1:
+            raise ValueError("Parameters must be sequences of integers. ")
+
+        cond_data = self.generate_multiple(n_condition)
+        eval_data = self.generate_multiple(n_evaluation)
+
+        return EvaluationDataset(
+            sample_rate,
+            cond_data[0],
+            cond_data[1],
+            eval_data[0],
+            eval_data[1],
+            name=name if name else "Unnamed",
+        )
 
 
 def measure_runtime(
@@ -136,6 +196,190 @@ def measure_runtime(
         times_apply.append(t_pred)
 
     return times_conditioning, times_apply
+
+
+class EvaluationRun:
+    """
+    Representation of an evaluation run
+
+    :param method_configurations: A list of tuples with the following format
+        [(filter_technique, [{'n_filter': 1024, ..}, ..]), ..]
+    :param dataset: An EvaluationDataset instance
+    :param optimization_metric: The optimization metric by which the optimum is selected
+    :param metrics: All metrics which will be exported
+    :param name: (optional) name of the evaluation run
+    """
+
+    def __init__(
+        self,
+        method_configurations: Sequence[tuple[type[FilterBase], Sequence]],
+        dataset: EvaluationDataset,
+        optimization_metric: EvaluationMetricScalar,
+        metrics: Sequence[EvaluationMetric] | None = None,
+        name: str = "unnamed",
+        directory: str = ".",
+    ):
+        # check that input data format
+        for filter_technique, configurations in method_configurations:
+            if not issubclass(filter_technique, FilterBase):
+                raise TypeError(
+                    "Only filtering techniques with the FilterBase interface are supported."
+                )
+            if len(configurations) < 0:
+                raise TypeError(
+                    "At least one parameter configuration must be supported."
+                )
+            for config in configurations:
+                if not isinstance(config, dict):
+                    raise TypeError("Filter configurations must be dictionaries.")
+
+        if not isinstance(dataset, EvaluationDataset):
+            raise TypeError("Dataset must be an EvaluationDataset instance.")
+        if not isinstance(optimization_metric, EvaluationMetricScalar):
+            raise TypeError(
+                "The optimization_metric must be an instance of an EvaluationMetricScalar."
+            )
+        if metrics is not None:
+            for metric in metrics:
+                if not isinstance(metric, EvaluationMetric):
+                    raise TypeError(
+                        "The metrics must be instances of an EvaluationMetric."
+                    )
+
+        self.method_configurations = method_configurations
+        self.dataset = dataset
+        self.optimization_metric = optimization_metric
+        self.metrics = metrics if metrics else []
+        self.name = name
+        self.directory = Path(directory)
+
+        self.all_configurations_list: list | None = None
+
+    def get_all_configurations(self) -> list:
+        """Returns a list of all unique (filter_technique, configuration) pairs."""
+        if self.all_configurations_list is None:
+            self.all_configurations_list = []
+
+            for filter_technique, configurations in self.method_configurations:
+                for conf in configurations:
+                    new_value = (filter_technique, conf)
+                    if new_value not in self.all_configurations_list:
+                        self.all_configurations_list.append(new_value)
+
+        return self.all_configurations_list
+
+    def _create_folder_structure(self) -> None:
+        """Create standardized folder structure for results"""
+        folders = [
+            self.directory / "conditioned_filters",
+            self.directory / "predictions",
+            self.directory / "report",
+            self.directory / "report" / "plots",
+            self.directory / "report" / "texts",
+        ]
+        for path in folders:
+            try:
+                os.mkdir(path)
+            except FileExistsError:
+                pass
+
+    @staticmethod
+    def save_np_array_list(data: list[NDArrayF], filename: str | Path) -> None:
+        """Save a list of numpy arrays to a .npz file"""
+        np.savez(filename, allow_pickle=False, *data)
+
+    @staticmethod
+    def load_np_array_list(filename: str | Path) -> list[NDArrayF]:
+        """Load a list of numpy arrays from a .npz file"""
+        data = np.load(filename, allow_pickle=False)
+        keys = list(sorted(data, key=lambda x: int(x[4:])))
+        for key in keys:
+            if not key.startswith("arr_"):
+                raise ValueError("Numpy file does not match expected format.")
+        print(keys)
+        return [data[key] for key in keys]
+
+    def get_prediction(self, filter_technique: type[FilterBase], conf: dict[str, Any]):
+        """Load the prediction created by applying the given filter and configuration to the dataset"""
+        self._create_folder_structure()
+
+        filt = filter_technique(**conf)
+
+        result_hash = hash_function_str(filt.method_hash() + self.dataset.hash_bytes())
+        result_filename = filt.method_filename_part + "_" + result_hash
+        conditioned_filter_path: Path = (
+            self.directory / "conditioned_filters" / filt.make_filename(result_filename)
+        )
+        prediction_path = self.directory / "predictions" / (result_filename + ".npz")
+
+        status = "loaded from file"
+        if prediction_path.exists():
+            pred = self.load_np_array_list(prediction_path)
+        else:
+            status = "calculated from loaded filter"
+            # load conditioned filter or run conditioning
+            if conditioned_filter_path.exists():
+                filt = filter_technique.load(conditioned_filter_path)
+            else:
+                status = "ran conditioning and calculated prediction"
+                # NOTE: remove the hard coding to the first sequence once filters support multiple sequences
+                filt.condition(
+                    self.dataset.witness_conditioning[0],
+                    self.dataset.target_conditioning[0],
+                )
+                if filt.supports_saving_loading():
+                    filt.save(conditioned_filter_path)
+
+            # create prediction
+            # NOTE: remove the hard coding to the first sequence once filters support multiple sequences
+            pred = filt.apply(
+                self.dataset.witness_evaluation[0],
+                self.dataset.target_evaluation[0],
+            )
+            pred = [pred]
+            self.save_np_array_list(pred, prediction_path)
+        print(filter_technique.filter_name, f"({status})")
+        return pred
+
+    def run(self, select: int | None = None) -> Generator[
+        tuple[Sequence[NDArrayF], EvaluationMetricScalar, Sequence[EvaluationMetric]],
+        None,
+        None,
+    ]:
+        """Execute the evaluation run
+
+        :param select: select one specific run from the list yielded by get_all_configurations
+
+        :return: generates (Prediction, optimization_metric, other_metrics) objects
+        """
+        # generate list of to-be-executed evaluations
+        configurations = self.get_all_configurations()
+        if select is not None:
+            configurations = [configurations[select]]
+
+        # NOTE: This can be removed once filters support lists of sequences
+        if len(self.dataset.target_evaluation) != 1:
+            raise NotImplementedError(
+                "Currently only datasets with a single sequence are supported."
+            )
+
+        # run evaluations
+        for filter_technique, conf in configurations:
+            pred = self.get_prediction(filter_technique, conf)
+
+            optimization_metric_result = self.optimization_metric.apply(
+                pred, self.dataset
+            )
+            metric_results = [
+                metric.apply(pred, self.dataset) for metric in self.metrics
+            ]
+
+            print("\ttarget: ", optimization_metric_result.text)
+
+            for metric in metric_results:
+                print("\t", metric.text)
+
+            yield pred, optimization_metric_result, metric_results
 
 
 def residual_power_ratio(

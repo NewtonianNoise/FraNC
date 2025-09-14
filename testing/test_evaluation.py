@@ -51,6 +51,11 @@ class TestTestDataGenerator(
 
         self.assertTrue((target * transfer_amplitude == witness[0]).all())
 
+    def test_dataset_generation(self):
+        """check that generating a dataset is possible"""
+        tdg = sg.evaluation.TestDataGenerator(witness_noise_level=[1] * 3)
+        self.assertIsInstance(tdg.dataset([10], [10]), sg.evaluation.EvaluationDataset)
+
 
 # there is no tesing for the residual_power_ratio function, as it is indirectly tested through the amplitude wrapper
 class TestResidualAmplitudeRatio(unittest.TestCase):
@@ -89,3 +94,38 @@ class TestMeasureRuntime(unittest.TestCase):
             self.assertAlmostEqual(
                 result_1000[i][0], result_1000_repeated[i][0], places=1
             )
+
+
+class TestEvaluationRun(unittest.TestCase):
+    """Test cases for the EvaluationRun class"""
+
+    def test_get_all_configurations(self):
+        """Check basic functionality of the get_all_configurations function"""
+        n_channel = 3
+
+        dataset = sg.evaluation.TestDataGenerator(
+            witness_noise_level=[1] * n_channel
+        ).dataset([1000], [1000])
+
+        method_configurations = [
+            (
+                sg.filtering.WienerFilter,
+                [
+                    {"n_filter": n_filter, "idx_target": 0, "n_channel": n_channel}
+                    for n_filter in [10, 12]
+                ],
+            )
+        ]
+        # enter the same configuration twice. It should only show up once in the result
+        er = sg.evaluation.EvaluationRun(
+            method_configurations * 2,
+            dataset,
+            sg.evaluation.RMSMetric(),
+        )
+
+        expected_result = [
+            (filtering_method, conf)
+            for filtering_method, configurations in method_configurations
+            for conf in configurations
+        ]
+        self.assertEqual(er.get_all_configurations(), expected_result)

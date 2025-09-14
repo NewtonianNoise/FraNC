@@ -1,6 +1,5 @@
 """Updating Wiener Filter"""
 
-from typing import Optional
 from collections.abc import Sequence
 from dataclasses import dataclass
 from warnings import warn
@@ -53,10 +52,10 @@ class UpdatingWienerFilter(FilterBase):
         self.context_pre = context_pre
         self.context_post = context_post
 
-        self.filter_state: Optional[NDArray] = None
+        self.filter_state: NDArray | None = None
 
     @staticmethod
-    def supports_saving_loading():
+    def supports_saving_loading() -> bool:
         """Indicates whether saving and loading is supported."""
         return False
 

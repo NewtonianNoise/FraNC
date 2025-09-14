@@ -117,3 +117,6 @@ TODO
 testing/filter_serialization_test_file.*.npz
 
 .vscode
+
+# documentation building
+doc/source/autoapi/

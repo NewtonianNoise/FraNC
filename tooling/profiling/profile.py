@@ -22,7 +22,6 @@ FILTER_CONFIGURATIONS = [
     (sg.filtering.WienerFilter, {}, False),
     (sg.filtering.UpdatingWienerFilter, {"context_pre": 3000}, True),
     (sg.filtering.LMSFilter, {"normalized": True, "coefficient_clipping": 10}, False),
-    (sg.filtering.LMSFilterC, {"normalized": True}, False),
     (sg.filtering.PolynomialLMSFilter, {"order": 1, "coefficient_clipping": 10}, False),
     (sg.filtering.PolynomialLMSFilter, {"order": 3, "coefficient_clipping": 10}, False),
 ]

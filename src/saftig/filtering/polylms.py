@@ -153,7 +153,7 @@ class PolynomialLMSFilter(FilterBase):
         :param witness: Witness sensor data
         :param target: Target sensor data
         """
-        self.apply(witness, target, update_state=True)
+        _ = self.apply(witness, target, update_state=True)
 
     def apply(
         self,

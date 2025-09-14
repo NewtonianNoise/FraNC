@@ -2,7 +2,6 @@
 This is intended to allow comparisons between the implementations.
 """
 
-from typing import Optional, Tuple
 from collections.abc import Sequence
 from contextlib import redirect_stdout
 from io import StringIO
@@ -42,7 +41,7 @@ class SpicypyWienerFilter(FilterBase):
         super().__init__(n_filter, idx_target, n_channel)
 
         self.conditioned = False
-        self.filter_state: Optional[spicypy.signal.WienerFilter]
+        self.filter_state: spicypy.signal.WienerFilter | None
 
     @staticmethod
     def supports_saving_loading():
@@ -52,9 +51,9 @@ class SpicypyWienerFilter(FilterBase):
     @staticmethod
     def make_spicypy_time_series(
         witness: Sequence | NDArray,
-        target: Optional[Sequence | NDArray],
+        target: Sequence | NDArray | None,
         sample_rate: float = 1.0,
-    ) -> Tuple[spicypy.signal.TimeSeries, spicypy.signal.TimeSeries]:
+    ) -> tuple[spicypy.signal.TimeSeries, spicypy.signal.TimeSeries]:
         """Convert the given witness and target signals to the format requried by spicypy.
 
         :param witness: Witness sensor data
@@ -112,7 +111,7 @@ class SpicypyWienerFilter(FilterBase):
     def apply(
         self,
         witness: Sequence | NDArray,
-        target: Optional[Sequence | NDArray],
+        target: Sequence | NDArray | None,
         pad: bool = True,
         update_state: bool = False,
         sample_rate: float = 1.0,

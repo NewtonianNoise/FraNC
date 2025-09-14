@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-all: build doc coverage linter
+all: ie doc coverage linter mypy
 ie:
 	pip install --no-build-isolation -e .
 
