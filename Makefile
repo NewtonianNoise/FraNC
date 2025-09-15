@@ -27,7 +27,7 @@ linter_testing:
 lt: linter_testing
 
 mypy:
-	mypy .
+	./tooling/run_mypy.sh
 
 doc: doc/source/* doc/*
 	cd doc/ && $(MAKE) html
