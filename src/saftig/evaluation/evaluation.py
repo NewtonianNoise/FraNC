@@ -286,12 +286,15 @@ class EvaluationRun:
                 pass
 
     @staticmethod
-    def save_np_array_list(data: list[NDArrayF], filename: str | Path) -> None:
+    def save_np_array_list(
+        data: Sequence[Sequence[NDArrayF]] | Sequence[NDArrayF] | NDArrayF,
+        filename: str | Path,
+    ) -> None:
         """Save a list of numpy arrays to a .npz file"""
         np.savez(filename, allow_pickle=False, *data)
 
     @staticmethod
-    def load_np_array_list(filename: str | Path) -> list[NDArrayF]:
+    def load_np_array_list(filename: str | Path) -> Sequence[NDArrayF]:
         """Load a list of numpy arrays from a .npz file"""
         data = np.load(filename, allow_pickle=False)
         keys = list(sorted(data, key=lambda x: int(x[4:])))
@@ -307,7 +310,7 @@ class EvaluationRun:
 
         filt = filter_technique(**conf)
 
-        result_hash = hash_function_str(filt.method_hash() + self.dataset.hash_bytes())
+        result_hash = hash_function_str(filt.method_hash + self.dataset.hash_bytes())
         result_filename = filt.method_filename_part + "_" + result_hash
         conditioned_filter_path: Path = (
             self.directory / "conditioned_filters" / filt.make_filename(result_filename)
@@ -316,7 +319,7 @@ class EvaluationRun:
 
         status = "loaded from file"
         if prediction_path.exists():
-            pred = self.load_np_array_list(prediction_path)
+            pred: Sequence | NDArrayF = self.load_np_array_list(prediction_path)
         else:
             status = "calculated from loaded filter"
             # load conditioned filter or run conditioning
@@ -338,8 +341,8 @@ class EvaluationRun:
                 self.dataset.witness_evaluation[0],
                 self.dataset.target_evaluation[0],
             )
-            pred = [pred]
-            self.save_np_array_list(pred, prediction_path)
+            pred_wrapped = [pred]
+            self.save_np_array_list(pred_wrapped, prediction_path)
         print(filter_technique.filter_name, f"({status})")
         return pred
 

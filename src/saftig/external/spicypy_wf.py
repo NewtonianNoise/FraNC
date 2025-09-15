@@ -10,7 +10,7 @@ import numpy as np
 from numpy.typing import NDArray
 import spicypy
 
-from ..filtering.common import FilterBase
+from ..filtering.common import FilterBase, handle_from_dict
 
 
 class SpicypyWienerFilter(FilterBase):
@@ -32,6 +32,7 @@ class SpicypyWienerFilter(FilterBase):
 
     filter_name = "SpicypyWF"
 
+    @handle_from_dict
     def __init__(
         self,
         n_filter: int,

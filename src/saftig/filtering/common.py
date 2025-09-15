@@ -2,6 +2,7 @@
 
 from typing import TypeVar, Any
 from collections.abc import Sequence, Callable
+from abc import ABC
 from dataclasses import dataclass, asdict, fields
 import warnings
 import inspect
@@ -54,19 +55,27 @@ def handle_from_dict(init_func: Callable):
 
     @functools.wraps(init_func)
     def wrapper(self, *args, **kwargs):
-        if from_dict_key in kwargs:
+        if from_dict_key in kwargs and kwargs[from_dict_key] is not None:
             from_dict = kwargs[from_dict_key]
             for key in from_dict:
                 setattr(self, key, from_dict[key])
         else:
-            init_func(self, *args, **kwargs)
+            # save init parameters
             self.init_parameters = list(args) + [kwargs[key] for key in sorted(kwargs)]
+
+            # calculate method hash
+            hashes = self._file_hash()  # pylint: disable=[protected-access]
+            hashes += FilterBase._file_hash()  # pylint: disable=[protected-access]
+            hashes += hash_object_list(self.init_parameters)
+            self.method_hash_value = hash_function(hashes)
+
+            init_func(self, *args, **kwargs)
 
     return wrapper
 
 
 @dataclass
-class FilterBase:
+class FilterBase(ABC):
     """common interface definition for Filter implementations
 
     :param n_filter: Length of the FIR filter
@@ -85,10 +94,13 @@ class FilterBase:
     n_filter: int
     n_channel: int
     idx_target: int
+    method_hash_value: bytes
     filter_name = "FilterBase"  # must be implemented in children
 
-    @handle_from_dict
-    def __init__(self, n_filter: int, idx_target: int, n_channel: int = 1):
+    def __init__(
+        self, n_filter: int, idx_target: int, n_channel: int = 1, _from_dict=None
+    ):
+        del _from_dict  # make as ignored, it is used by the handle_from_dict decorator
         self.n_filter = n_filter
         self.n_channel = n_channel
         self.idx_target = idx_target
@@ -270,20 +282,13 @@ class FilterBase:
             script = f.read()
         return hash_function(script)
 
+    @property
     def method_hash(self) -> bytes:
-        """Returns a hash of the method and parameters
+        """A hash of the method and parameters
         NOTE: This is not a hash of the conditioned filter!
         Thus, the same filter configuration applied to a different dataset will result in the same hash!
         """
-        if not hasattr(self, "init_parameters"):
-            raise NotImplementedError(
-                "Filter instances loaded from file do not support method_hash()"
-            )
-
-        hashes = self._file_hash()
-        hashes += FilterBase._file_hash()
-        hashes += hash_object_list(self.init_parameters)  # pylint: disable=no-member
-        return hash_function(hashes)
+        return self.method_hash_value
 
     @property
     def method_filename_part(self) -> str:

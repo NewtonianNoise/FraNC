@@ -26,7 +26,7 @@ class TestFilterBase(unittest.TestCase):
 
 
 class TestFilter:
-    """Parent class for all filter testingr
+    """Parent class for all filter testing
     Contains common test cases and testing tools
     """
 
@@ -48,7 +48,7 @@ class TestFilter:
         raise RuntimeError("This only functions as a parent class!")
 
     def set_target(self, target_filter, default_filter_parameters=[{}]) -> None:
-        """set the target filter and configurtions
+        """set the target filter and configurations
         This is required to run the common tests
 
         :param target_filter: The to-be-tested filter class
@@ -188,6 +188,11 @@ class TestFilter:
                 filt.save(TEST_FILE)
                 loaded_filter = self.target_filter.load(TEST_FILE)
 
+                self.assertEqual(
+                    filt.method_hash,
+                    loaded_filter.method_hash,
+                )
+
                 prediction_orig = filt.apply(witness, target)
                 prediction_loaded = loaded_filter.apply(witness, target)
 
@@ -204,7 +209,7 @@ class TestFilter:
         """Check that hashing works for the filter instances"""
         old_hash = None
         for filt in self.instantiate_filters(10, n_channel=2):
-            new_hash = filt.method_hash()
+            new_hash = filt.method_hash
 
             self.assertIsInstance(new_hash, bytes)
             self.assertNotEqual(new_hash, old_hash)
