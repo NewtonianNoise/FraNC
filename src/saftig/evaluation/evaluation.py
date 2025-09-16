@@ -198,7 +198,7 @@ def measure_runtime(
     return times_conditioning, times_apply
 
 
-class EvaluationRun:
+class EvaluationRun:  # pylint: disable=too-many-instance-attributes
     """
     Representation of an evaluation run
 
@@ -222,6 +222,9 @@ class EvaluationRun:
         directory: str = ".",
     ):
         # check that input data format
+        self.multi_sequence_support = (
+            True  # indicates whether all methods support multiple sequences
+        )
         for filter_technique, configurations in method_configurations:
             if not issubclass(filter_technique, FilterBase):
                 raise TypeError(
@@ -234,6 +237,9 @@ class EvaluationRun:
             for config in configurations:
                 if not isinstance(config, dict):
                     raise TypeError("Filter configurations must be dictionaries.")
+
+            if not filter_technique.supports_multi_sequence:
+                self.multi_sequence_support = False
 
         if not isinstance(dataset, EvaluationDataset):
             raise TypeError("Dataset must be an EvaluationDataset instance.")
@@ -327,22 +333,32 @@ class EvaluationRun:
                 filt = filter_technique.load(conditioned_filter_path)
             else:
                 status = "ran conditioning and calculated prediction"
-                # NOTE: remove the hard coding to the first sequence once filters support multiple sequences
-                filt.condition(
-                    self.dataset.witness_conditioning[0],
-                    self.dataset.target_conditioning[0],
-                )
+                if self.multi_sequence_support:
+                    filt.condition_multi_sequence(
+                        self.dataset.witness_conditioning,
+                        self.dataset.target_conditioning,
+                    )
+                else:
+                    filt.condition(
+                        self.dataset.witness_conditioning[0],
+                        self.dataset.target_conditioning[0],
+                    )
                 if filt.supports_saving_loading():
                     filt.save(conditioned_filter_path)
 
             # create prediction
-            # NOTE: remove the hard coding to the first sequence once filters support multiple sequences
-            pred = filt.apply(
-                self.dataset.witness_evaluation[0],
-                self.dataset.target_evaluation[0],
-            )
-            pred_wrapped = [pred]
-            self.save_np_array_list(pred_wrapped, prediction_path)
+            if self.multi_sequence_support:
+                pred = filt.apply_multi_sequence(
+                    self.dataset.witness_evaluation,
+                    self.dataset.target_evaluation,
+                )
+            else:
+                pred_single = filt.apply(
+                    self.dataset.witness_evaluation[0],
+                    self.dataset.target_evaluation[0],
+                )
+                pred = [pred_single]
+            self.save_np_array_list(pred, prediction_path)
         print(filter_technique.filter_name, f"({status})")
         return pred
 
@@ -362,10 +378,9 @@ class EvaluationRun:
         if select is not None:
             configurations = [configurations[select]]
 
-        # NOTE: This can be removed once filters support lists of sequences
-        if len(self.dataset.target_evaluation) != 1:
+        if len(self.dataset.target_evaluation) != 1 and not self.multi_sequence_support:
             raise NotImplementedError(
-                "Currently only datasets with a single sequence are supported."
+                "At least one filter method does not support multi sequence input, but the dataset contains multiple sequences."
             )
 
         # run evaluations
