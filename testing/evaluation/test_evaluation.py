@@ -5,7 +5,7 @@ import numpy as np
 
 import saftig as sg
 
-from .toolbox import calc_mean_asd
+from ..toolbox import calc_mean_asd
 
 
 class TestTestDataGenerator(
