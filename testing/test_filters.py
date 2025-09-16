@@ -12,19 +12,6 @@ TEST_FILE = "testing/filter_serialization_test_file"
 RNG_SEED = 113510
 
 
-class TestFilterBase(unittest.TestCase):
-    """Tests for the filter base class"""
-
-    def test_for_exceptions(self):
-        """Check that FilterBase member functions throw appropriate errors"""
-        with warnings.catch_warnings():  # warnings are expected here
-            warnings.simplefilter("ignore")
-            filt = sg.filtering.FilterBase(10, 0, 1)
-
-        self.assertRaises(NotImplementedError, filt.condition, None, None)
-        self.assertRaises(NotImplementedError, filt.apply, None, None)
-
-
 class TestFilter:
     """Parent class for all filter testing
     Contains common test cases and testing tools

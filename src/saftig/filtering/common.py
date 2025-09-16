@@ -1,8 +1,8 @@
 """Shared functionality for all other modules"""
 
-from typing import TypeVar, Any
+from typing import TypeVar, Any, overload
 from collections.abc import Sequence, Callable
-from abc import ABC
+import abc
 from dataclasses import dataclass, asdict, fields
 import warnings
 import inspect
@@ -75,7 +75,7 @@ def handle_from_dict(init_func: Callable):
 
 
 @dataclass
-class FilterBase(ABC):
+class FilterBase(abc.ABC):
     """common interface definition for Filter implementations
 
     :param n_filter: Length of the FIR filter
@@ -84,7 +84,7 @@ class FilterBase(ABC):
     :param n_channel: Number of witness sensor channels
     """
 
-    # properties listet here will be export in serialized dumps
+    # properties listed here will be export in serialized dumps
     # NOTE: all properties here must be serializable by np.savez()
     #       with allow_pickle=False. This does exclude None!
 
@@ -95,6 +95,7 @@ class FilterBase(ABC):
     n_channel: int
     idx_target: int
     method_hash_value: bytes
+    supports_multi_sequence = True
     filter_name = "FilterBase"  # must be implemented in children
 
     def __init__(
@@ -139,15 +140,20 @@ class FilterBase(ABC):
         :param witness: Witness sensor data
         :param target: Target sensor data
         """
-        del witness, target  # mark as unused for checkers
-        raise NotImplementedError(
-            "This function must be implemented by the child class!"
-        )
+        return self.condition_multi_sequence([witness], [target])
+
+    @abc.abstractmethod
+    def condition_multi_sequence(
+        self,
+        witness: Sequence | Sequence[Sequence] | NDArray,
+        target: Sequence | NDArray,
+    ) -> Any:
+        """Similar to condition(), but expects multiple sequences"""
 
     def apply(
         self,
         witness: Sequence | NDArray,
-        target: Sequence | NDArray,
+        target: Sequence | NDArray | None = None,
         pad: bool = True,
         update_state: bool = False,
     ) -> NDArray:
@@ -160,10 +166,22 @@ class FilterBase(ABC):
 
         :return: prediction
         """
-        del witness, target, pad, update_state  # mark as unused
-        raise NotImplementedError(
-            "This function must be implemented by the child class!"
-        )
+        if target is None:
+            return self.apply_multi_sequence([witness], None, pad, update_state)[0]
+        return self.apply_multi_sequence([witness], [target], pad, update_state)[0]
+
+    @abc.abstractmethod
+    def apply_multi_sequence(
+        self,
+        witness: Sequence | NDArray,
+        target: Sequence | NDArray | None,
+        pad: bool = True,
+        update_state: bool = False,
+    ) -> Sequence[NDArray]:
+        """Apply the filter to input data
+
+        Similar to apply() but expects multiple sequences.
+        """
 
     def check_data_dimensions(
         self,
@@ -189,6 +207,59 @@ class FilterBase(ABC):
             assert (
                 target is None or target_npy.shape[0] == witness_npy.shape[1]
             ), "Missmatch between target and witness data shapes"
+
+        return witness_npy, target_npy
+
+    # overloads to simplify type handling of return values
+    @overload
+    def check_data_dimensions_multi_sequence(
+        self,
+        witness: Sequence | NDArray,
+        target: None,
+    ) -> tuple[list[NDArray], None]: ...
+
+    @overload
+    def check_data_dimensions_multi_sequence(
+        self,
+        witness: Sequence | NDArray,
+        target: Sequence | NDArray,
+    ) -> tuple[list[NDArray], list[NDArray]]: ...
+
+    def check_data_dimensions_multi_sequence(
+        self,
+        witness: Sequence | NDArray,
+        target: Sequence | NDArray | None = None,
+    ) -> tuple[list[NDArray], list[NDArray] | None]:
+        """Check the dimensions of the provided input data and apply make_2d_array()
+
+        :param witness: Witness sensor data
+        :param target: Target sensor data
+
+        :return: data as (target, witness)
+
+        :raises: AssertionError
+        """
+        witness_npy = [make_2d_array(w) for w in witness]
+        for w in witness_npy:
+            assert (
+                w.shape[0] == self.n_channel
+            ), "witness data shape does not match configured channel count"
+
+        if target is not None:
+            assert len(witness) == len(target)
+            target_npy = [np.array(t) for t in target]
+
+            for w, t in zip(witness_npy, target_npy):
+                assert (
+                    w.shape[1] == t.shape[0]
+                ), "Missmatch between target and witness data shapes"
+        else:
+            target_npy = None
+
+        if self.requires_apply_target:
+            assert (
+                target is not None
+            ), "This filter requires a target signal to be applied"
 
         return witness_npy, target_npy
 

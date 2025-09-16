@@ -2,8 +2,10 @@
 This is intended to allow comparisons between the implementations.
 """
 
+from typing import overload
 from collections.abc import Sequence
 from contextlib import redirect_stdout
+from dataclasses import dataclass
 from io import StringIO
 import warnings
 import numpy as np
@@ -13,6 +15,7 @@ import spicypy
 from ..filtering.common import FilterBase, handle_from_dict
 
 
+@dataclass
 class SpicypyWienerFilter(FilterBase):
     """A wrapper for the spicypy WF implementation
 
@@ -30,6 +33,7 @@ class SpicypyWienerFilter(FilterBase):
 
     """
 
+    supports_multi_sequence = False
     filter_name = "SpicypyWF"
 
     @handle_from_dict
@@ -49,13 +53,29 @@ class SpicypyWienerFilter(FilterBase):
         """Indicates whether saving and loading is supported."""
         return False
 
+    @overload
+    @staticmethod
+    def make_spicypy_time_series(
+        witness: Sequence | NDArray,
+        target: None,
+        sample_rate: float = 1.0,
+    ) -> tuple[Sequence[spicypy.signal.TimeSeries], None]: ...
+
+    @overload
+    @staticmethod
+    def make_spicypy_time_series(
+        witness: Sequence | NDArray,
+        target: Sequence | NDArray,
+        sample_rate: float = 1.0,
+    ) -> tuple[Sequence[spicypy.signal.TimeSeries], spicypy.signal.TimeSeries]: ...
+
     @staticmethod
     def make_spicypy_time_series(
         witness: Sequence | NDArray,
         target: Sequence | NDArray | None,
         sample_rate: float = 1.0,
-    ) -> tuple[spicypy.signal.TimeSeries, spicypy.signal.TimeSeries]:
-        """Convert the given witness and target signals to the format requried by spicypy.
+    ) -> tuple[Sequence[spicypy.signal.TimeSeries], spicypy.signal.TimeSeries | None]:
+        """Convert the given witness and target signals to the format required by spicypy.
 
         :param witness: Witness sensor data
         :param target: Target sensor data
@@ -96,9 +116,9 @@ class SpicypyWienerFilter(FilterBase):
             use_multiprocessing=use_multiprocessing,
             use_norm_factor=False,
         )
+
         # spicypy.signal.WienerFilter uses a lot of print statements
         # this stops it from spamming stdout
-
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
 
@@ -109,10 +129,19 @@ class SpicypyWienerFilter(FilterBase):
 
         return self.filter_state
 
+    def condition_multi_sequence(
+        self,
+        witness: Sequence | Sequence[Sequence] | NDArray,
+        target: Sequence | NDArray,
+    ):
+        """Not supported"""
+        del witness, target  # mark parameters as unused
+        raise NotImplementedError("Mulit sequence input is not supported.")
+
     def apply(
         self,
         witness: Sequence | NDArray,
-        target: Sequence | NDArray | None,
+        target: Sequence | NDArray | None = None,
         pad: bool = True,
         update_state: bool = False,
         sample_rate: float = 1.0,
@@ -126,6 +155,8 @@ class SpicypyWienerFilter(FilterBase):
 
         :return: prediction
         """
+        if target is None:
+            raise ValueError("A target signal must be supplied")
         if not self.conditioned:
             raise RuntimeError(
                 "This filter must be conditioned before calling apply()!"
@@ -144,3 +175,14 @@ class SpicypyWienerFilter(FilterBase):
             prediction = np.concatenate([prediction, [0]])
 
         return prediction
+
+    def apply_multi_sequence(
+        self,
+        witness: Sequence | NDArray,
+        target: Sequence | NDArray | None,
+        pad: bool = True,
+        update_state: bool = False,
+    ) -> Sequence[NDArray]:
+        """Not supported"""
+        del witness, target, pad, update_state  # mark parameters as unused
+        raise NotImplementedError("Mulit sequence input is not supported.")

@@ -147,7 +147,7 @@ class PolynomialLMSFilter(FilterBase):
         self,
         witness: Sequence | NDArray,
         target: Sequence | NDArray,
-    ):
+    ) -> None:
         """Use an input dataset to condition the filter
 
         :param witness: Witness sensor data
@@ -155,10 +155,19 @@ class PolynomialLMSFilter(FilterBase):
         """
         _ = self.apply(witness, target, update_state=True)
 
+    def condition_multi_sequence(
+        self,
+        witness: Sequence | Sequence[Sequence] | NDArray,
+        target: Sequence | NDArray,
+    ) -> None:
+        """Similar to condition(), but expects multiple sequences"""
+        for w, t in zip(witness, target):
+            self.condition(w, t)
+
     def apply(
         self,
         witness: Sequence | NDArray,
-        target: Sequence | NDArray,
+        target: Sequence | NDArray | None = None,
         pad: bool = True,
         update_state: bool = False,
     ) -> NDArray:
@@ -171,6 +180,8 @@ class PolynomialLMSFilter(FilterBase):
 
         :return: prediction
         """
+        if target is None:
+            raise ValueError("A target signal must be supplied")
         witness, target = self.check_data_dimensions(witness, target)
         assert target is not None, "Target data must be supplied"
 
@@ -202,3 +213,17 @@ class PolynomialLMSFilter(FilterBase):
             )
 
         return prediction
+
+    def apply_multi_sequence(
+        self,
+        witness: Sequence | NDArray,
+        target: Sequence | NDArray | None = None,
+        pad: bool = True,
+        update_state: bool = False,
+    ) -> Sequence[NDArray]:
+        if target is None:
+            raise ValueError("A target signal must be supplied")
+        predictions = [
+            self.apply(w, t, pad, update_state) for w, t in zip(witness, target)
+        ]
+        return predictions

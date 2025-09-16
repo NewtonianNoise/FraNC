@@ -165,7 +165,7 @@ class WienerFilter(FilterBase):
         super().__init__(n_filter, idx_target, n_channel)
         self.requires_apply_target = False
 
-    def condition(
+    def condition_multi_sequence(
         self,
         witness: Sequence | Sequence[Sequence] | NDArray,
         target: Sequence | NDArray,
@@ -175,23 +175,34 @@ class WienerFilter(FilterBase):
         :param witness: Witness sensor data
         :param target: Target sensor data
         """
-        witness_npy, target_npy = self.check_data_dimensions(witness, target)
-
-        self.filter_state, full_rank = wf_calculate(
-            witness_npy, target_npy, self.n_filter, idx_target=self.idx_target
+        witness_npy, target_npy = self.check_data_dimensions_multi_sequence(
+            witness, target
         )
+
+        full_rank = True
+        filter_coefficients = []
+        norm = 0
+        for witness_npy_i, target_npy_i in zip(witness_npy, target_npy):
+            fc, full_rank_i = wf_calculate(
+                witness_npy_i, target_npy_i, self.n_filter, idx_target=self.idx_target
+            )
+            full_rank &= full_rank_i
+            filter_coefficients.append(fc * len(target_npy_i))
+            norm += len(target_npy_i)
+
+        self.filter_state: NDArray = np.sum(filter_coefficients, axis=0) / norm
 
         if not full_rank:
             warn("Warning: Filter is not of full rank", RuntimeWarning)
         return self.filter_state, full_rank
 
-    def apply(
+    def apply_multi_sequence(
         self,
         witness: Sequence | NDArray,
         target: Sequence | NDArray | None = None,
         pad: bool = True,
         update_state: bool = False,
-    ) -> NDArray:
+    ) -> list[NDArray]:
         """Apply the filter to input data
 
         :param witness: Witness sensor data
@@ -201,19 +212,24 @@ class WienerFilter(FilterBase):
 
         :return: prediction
         """
-        witness, target = self.check_data_dimensions(witness, target)
+        del update_state  # mark as unused
+
+        witness, target = self.check_data_dimensions_multi_sequence(witness, target)
         if self.filter_state is None:
             raise RuntimeError(
                 "The filter must be conditioned before apply() can be used."
             )
 
-        prediction = wf_apply(self.filter_state, witness)
-        if pad:
-            prediction = np.concatenate(
-                [
-                    np.zeros(self.n_filter - 1 - self.idx_target),
-                    prediction,
-                    np.zeros(self.idx_target),
-                ]
-            )
-        return prediction
+        predictions: list = []
+        for w_sequence in witness:
+            prediction_sequence = wf_apply(self.filter_state, w_sequence)
+            if pad:
+                prediction_sequence = np.concatenate(
+                    [
+                        np.zeros(self.n_filter - 1 - self.idx_target),
+                        prediction_sequence,
+                        np.zeros(self.idx_target),
+                    ]
+                )
+            predictions.append(prediction_sequence)
+        return predictions

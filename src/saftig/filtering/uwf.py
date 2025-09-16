@@ -59,23 +59,24 @@ class UpdatingWienerFilter(FilterBase):
         """Indicates whether saving and loading is supported."""
         return False
 
-    def condition(
+    def condition_multi_sequence(
         self,
         witness: Sequence | NDArray,
         target: Sequence | NDArray,
         hide_warning: bool = False,
     ) -> None:
         """Placeholder for compatibility to other filters; does nothing!"""
+        del witness, target
         if not hide_warning:
             warn(
-                "Warning: UpdatingWienerFilter.condition() is just a placeholder, it has no effect.",
+                "Warning: UpdatingWienerFilter conditioning methods are just placeholders, they have no effect.",
                 RuntimeWarning,
             )
 
     def apply(
         self,
         witness: Sequence | NDArray,
-        target: Sequence | NDArray,
+        target: Sequence | NDArray | None = None,
         pad: bool = True,
         update_state: bool = False,
     ) -> NDArray:
@@ -88,6 +89,8 @@ class UpdatingWienerFilter(FilterBase):
 
         :return: prediction, bool indicating if all WF updates had full rank
         """
+        if target is None:
+            raise ValueError("A target signal must be supplied")
         witness, target = self.check_data_dimensions(witness, target)
 
         all_full_rank = True
@@ -137,3 +140,17 @@ class UpdatingWienerFilter(FilterBase):
         else:
             prediction_npy = np.array(prediction)
         return prediction_npy
+
+    def apply_multi_sequence(
+        self,
+        witness: Sequence | NDArray,
+        target: Sequence | NDArray | None,
+        pad: bool = True,
+        update_state: bool = False,
+    ) -> Sequence[NDArray]:
+        if target is None:
+            raise ValueError("A target signal must be supplied")
+        predictions = [
+            self.apply(w, t, pad, update_state) for w, t in zip(witness, target)
+        ]
+        return predictions
