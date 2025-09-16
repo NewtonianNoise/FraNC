@@ -1,11 +1,10 @@
-import unittest
 from warnings import warn
 
 import saftig
 from .test_filters import TestFilter
 
 
-class TestSpicypyWienerFilter(unittest.TestCase, TestFilter):
+class TestSpicypyWienerFilter(TestFilter.TestFilter):
     """Tests for the WF"""
 
     __test__ = True

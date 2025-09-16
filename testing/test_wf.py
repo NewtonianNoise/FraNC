@@ -1,11 +1,9 @@
-import unittest
-
 import saftig as sg
 
 from .test_filters import TestFilter
 
 
-class TestWienerFilter(unittest.TestCase, TestFilter):
+class TestWienerFilter(TestFilter.TestFilter):
     """Tests for the WF"""
 
     __test__ = True

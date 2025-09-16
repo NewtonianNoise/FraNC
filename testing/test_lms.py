@@ -1,4 +1,3 @@
-import unittest
 import numpy as np
 
 import saftig as sg
@@ -8,7 +7,7 @@ from .test_filters import TestFilter
 RNG_SEED = 113510
 
 
-class TestLMSFilter(unittest.TestCase, TestFilter):
+class TestLMSFilter(TestFilter.TestFilter):
     """tests for the LeastMeanSquares filter implementation"""
 
     __test__ = True
