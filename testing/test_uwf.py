@@ -1,3 +1,5 @@
+"""Tests for TestUpdatingWienerFilter"""
+
 import saftig as sg
 
 from .test_filters import TestFilter

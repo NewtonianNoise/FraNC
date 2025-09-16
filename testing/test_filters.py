@@ -1,7 +1,8 @@
+"""Parent class to test filter implementations"""
+
 import unittest
 from typing import Iterable
 import warnings
-import abc
 
 import numpy as np
 
@@ -13,9 +14,11 @@ TEST_FILE = "testing/filter_serialization_test_file"
 RNG_SEED = 113510
 
 
-# this wrapper class prevents automatic test detections
-# from finding the parent class and attempting to run it
-class TestFilter:
+class TestFilter:  # pylint: disable=too-few-public-methods
+    """this wrapper class prevents automatic test detections
+    from finding the parent class and attempting to run it
+    """
+
     class TestFilter(unittest.TestCase):
         """Parent class for all filter testing
         Contains common test cases and testing tools
@@ -39,16 +42,20 @@ class TestFilter:
             super().__init__(*args, **kwargs)
             self.__test__ = False
 
-        def set_target(self, target_filter, default_filter_parameters=[{}]) -> None:
+        def set_target(self, target_filter, default_filter_parameters=None) -> None:
             """set the target filter and configurations
             This is required to run the common tests
 
             :param target_filter: The to-be-tested filter class
             :param default_filter_parameters: A list of all configuration for which the tests will be run
             """
-            assert isinstance(default_filter_parameters, list)
             self.target_filter = target_filter
-            self.default_filter_parameters = default_filter_parameters
+            self.default_filter_parameters = (
+                [{}]
+                if (default_filter_parameters is None)
+                else default_filter_parameters
+            )
+            assert isinstance(self.default_filter_parameters, list)
 
         def instantiate_filters(
             self, n_filter=128, idx_target=0, n_channel=1
@@ -118,6 +125,7 @@ class TestFilter:
                 self.assertEqual(len(prediction), len(target) - n_filter + 1)
 
         def test_multi_sequence(self):
+            """Test that multi sequence functions work is supports_multi_sequence is set"""
             if not self.target_filter.supports_multi_sequence:
                 return
             n_filter = 128

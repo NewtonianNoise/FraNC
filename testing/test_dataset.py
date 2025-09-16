@@ -1,3 +1,5 @@
+"""Tests for EvaluationDataset"""
+
 import unittest
 from copy import deepcopy
 import numpy as np
@@ -10,8 +12,9 @@ class TestEvaluationDataset(unittest.TestCase):
 
     @staticmethod
     def simple_test_data(n_samples=100, n_sequences=4, n_channels=2):
+        """Generate a simple dataset"""
         target = [np.ones(n_samples)] * n_sequences
-        witness = [[sequence for channel in range(n_channels)] for sequence in target]
+        witness = [[sequence for _ in range(n_channels)] for sequence in target]
         return witness, target
 
     def test_functionality(self):
@@ -33,7 +36,9 @@ class TestEvaluationDataset(unittest.TestCase):
 
     def test_wrong_input(self):
         """Check that malformed input results in adequate errors"""
-        from saftig.evaluation import EvaluationDataset
+        from saftig.evaluation import (  # pylint: disable=import-outside-toplevel
+            EvaluationDataset,
+        )
 
         witness, target = self.simple_test_data()
         signal = target
@@ -122,7 +127,9 @@ class TestEvaluationDataset(unittest.TestCase):
 
     def test_hash(self):
         """Test hashability of the object and that changes in each parameter affect the hash value."""
-        from saftig.evaluation import EvaluationDataset
+        from saftig.evaluation import (  # pylint: disable=import-outside-toplevel
+            EvaluationDataset,
+        )
 
         # get hash for base paramters (also checks that hashing works at all)
         base_parameters = [

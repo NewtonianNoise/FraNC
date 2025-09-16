@@ -1,3 +1,5 @@
+"""Tests for filtering.LMSFilter"""
+
 import numpy as np
 
 import saftig as sg

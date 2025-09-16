@@ -1,3 +1,5 @@
+"""Test cases for different evaluation classes and functions"""
+
 import unittest
 import numpy as np
 

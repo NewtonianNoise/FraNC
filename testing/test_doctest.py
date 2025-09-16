@@ -1,3 +1,5 @@
+"""Load doctests in the main module as unittests"""
+
 import doctest
 import saftig
 

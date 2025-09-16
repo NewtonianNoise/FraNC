@@ -1,3 +1,5 @@
+"""Tests for the spicypy WF implementation"""
+
 from warnings import warn
 
 import saftig
@@ -5,7 +7,7 @@ from .test_filters import TestFilter
 
 
 class TestSpicypyWienerFilter(TestFilter.TestFilter):
-    """Tests for the WF"""
+    """Tests for the spicypy WF implementation"""
 
     __test__ = True
 
