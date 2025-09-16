@@ -112,6 +112,29 @@ class TestFilter:
             prediction = filt.apply(witness, target, pad=False)
             self.assertEqual(len(prediction), len(target) - n_filter + 1)
 
+    def test_multi_sequence(self):
+        if not self.target_filter.supports_multi_sequence:
+            return
+        n_filter = 128
+        witness, target = sg.evaluation.TestDataGenerator(
+            0.1, rng_seed=RNG_SEED
+        ).generate_multiple([int(1e4), int(2e4)])
+
+        for filt in self.instantiate_filters(n_filter):
+            with warnings.catch_warnings():  # warnings are expected here
+                warnings.simplefilter("ignore")
+                filt.condition_multi_sequence(witness, target)
+
+            # with padding
+            prediction = filt.apply_multi_sequence(witness, target)
+            for p, t in zip(prediction, target):
+                self.assertEqual(p.shape, t.shape)
+
+            # without padding
+            prediction = filt.apply_multi_sequence(witness, target, pad=False)
+            for p, t in zip(prediction, target):
+                self.assertEqual(len(p), len(t) - n_filter + 1)
+
     def test_apply_on_unconditioned_filter(self):
         """Check that calling apply() on an unconditioned filter either works or throws an RuntimeError"""
         n_filter = 128
