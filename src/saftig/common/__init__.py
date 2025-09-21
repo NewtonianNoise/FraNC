@@ -7,6 +7,7 @@ from .common import (
     hash_object_list,
     hash_object_list_int,
     bytes2int,
+    bytes2str,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "hash_object_list",
     "hash_object_list_int",
     "bytes2int",
+    "bytes2str",
 ]

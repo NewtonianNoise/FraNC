@@ -38,6 +38,7 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
     signal_conditioning: Sequence[NDArrayF] | None
     signal_evaluation: Sequence[NDArrayF] | None
     name: str
+    target_unit: str  # unit of the target signal
 
     def __init__(
         self,
@@ -49,6 +50,7 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
         signal_conditioning: Sequence[NDArrayF] | None = None,
         signal_evaluation: Sequence[NDArrayF] | None = None,
         name: str = "Unnamed",
+        target_unit: str = "1",
     ):
         self.sample_rate = float(sample_rate)
         (
@@ -64,6 +66,7 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
             )
         )
         self.name = name
+        self.target_unit = target_unit
 
         if not isinstance(name, str):
             raise ValueError("name must be a string")

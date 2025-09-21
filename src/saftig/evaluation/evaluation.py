@@ -11,7 +11,7 @@ from numpy.typing import NDArray
 
 from .common import total_power
 from .dataset import EvaluationDataset
-from .metrics import EvaluationMetric, EvaluationMetricScalar
+from .metrics import EvaluationMetric, EvaluationMetricScalar, EvaluationMetricPlottable
 from ..filtering import FilterBase
 from ..common import hash_function_str
 
@@ -360,7 +360,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 pred = [pred_single]
             self.save_np_array_list(pred, prediction_path)
         print(filter_technique.filter_name, f"({status})")
-        return pred
+        return pred, result_filename
 
     def run(self, select: int | None = None) -> Generator[
         tuple[Sequence[NDArrayF], EvaluationMetricScalar, Sequence[EvaluationMetric]],
@@ -385,18 +385,29 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
 
         # run evaluations
         for filter_technique, conf in configurations:
-            pred = self.get_prediction(filter_technique, conf)
+            pred, result_filename = self.get_prediction(filter_technique, conf)
 
             optimization_metric_result = self.optimization_metric.apply(
                 pred, self.dataset
             )
+            print("\ttarget: ", optimization_metric_result.text)
+
             metric_results = [
                 metric.apply(pred, self.dataset) for metric in self.metrics
             ]
 
-            print("\ttarget: ", optimization_metric_result.text)
-
             for metric in metric_results:
+                if isinstance(metric, EvaluationMetricPlottable):
+                    plot_filename = (
+                        metric.name
+                        + "_"
+                        + result_filename
+                        + "_"
+                        + metric.method_hash_str
+                        + ".pdf"
+                    )
+                    save_path = self.directory / "report" / "plots" / plot_filename
+                    metric.save_plot(save_path)
                 print("\t", metric.text)
 
             yield pred, optimization_metric_result, metric_results

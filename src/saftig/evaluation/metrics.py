@@ -10,13 +10,17 @@ from collections.abc import Sequence
 import abc
 import functools
 import warnings
+import inspect
+from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
 from matplotlib.axes import Axes
+import matplotlib.pyplot as plt
 from scipy.signal import welch
 
 from .dataset import EvaluationDataset
+from ..common import hash_object_list, hash_function, bytes2str
 
 # Self type was only added in 3.11; this ensures compatibility with older python versions
 if sys.hexversion >= 0x30B0000:
@@ -74,6 +78,33 @@ class EvaluationMetric(abc.ABC):
     residual: Sequence[NDArray]
     parameters: dict = {}
     name: str
+    method_hash_value: bytes
+
+    @staticmethod
+    def init_wrapper(func):
+        """A decorator for the __init__function
+
+        Saves a hash value for the configuration
+        """
+
+        @functools.wraps(func)
+        def wrapper(self, **kwargs):
+            # save init parameters
+            self.parameters = {key: kwargs[key] for key in sorted(kwargs)}
+
+            # calculate method hash
+            hashes = self._file_hash()  # pylint: disable=[protected-access]
+            hashes += hash_object_list(list(self.parameters.keys()))
+            hashes += hash_object_list(list(self.parameters.values()))
+            self.method_hash_value = hash_function(hashes)
+            return func(self, **kwargs)
+
+        return wrapper
+
+    @init_wrapper
+    def __init__(self, **kwargs):
+        """Placeholder init function to ensure a hash is calculated"""
+        del kwargs  # mark as unused
 
     # idea: initialize with the configuration, then call apply() to set data
     # apply() then returns a new instance of the metric that is configured with the data
@@ -120,7 +151,7 @@ class EvaluationMetric(abc.ABC):
         return self.result_full[0]
 
     @classmethod
-    def result_to_text(cls, result_full: tuple[float, ...]) -> str:
+    def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
         """String indicating the evaluation result"""
         del result_full  # mark non-used variable
         return f"{cls.name}"
@@ -129,6 +160,27 @@ class EvaluationMetric(abc.ABC):
     def text(self):
         """The text representation of the evaluation result"""
         return self.result_to_text(self.result_full)
+
+    @classmethod
+    def _file_hash(cls) -> bytes:
+        """Calculates a hash value based on the file in which this method was defined."""
+        with open(inspect.getfile(cls), "rb") as f:
+            script = f.read()
+        return hash_function(script)
+
+    @property
+    def method_hash(self) -> bytes:
+        """A hash representing the configured metric as a bytes object"""
+        if not hasattr(self, "method_hash_value") or self.method_hash_value is None:
+            raise NotImplementedError(
+                f"The metric {type(self)} __init__() function is missing the @init_wrapper decorator."
+            )
+        return self.method_hash_value
+
+    @property
+    def method_hash_str(self) -> str:
+        """A hash representing the configured metric as a base64 like string"""
+        return bytes2str(self.method_hash)
 
     @staticmethod
     def result_full_wrapper(func):
@@ -161,7 +213,7 @@ class EvaluationMetricScalar(EvaluationMetric):
         return self.result_full[0]
 
     @classmethod
-    def result_to_text(cls, result_full: tuple[float, ...]) -> str:
+    def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
         """String indicating the evaluation result"""
         # this default implementation works for floats
         return f"{cls.name}: {result_full[0]:f}"
@@ -173,6 +225,22 @@ class EvaluationMetricPlottable(EvaluationMetric):
     @abc.abstractmethod
     def plot(self, ax: Axes):
         """Generate a result plot on the given axes object"""
+
+    def save_plot(
+        self,
+        fname: str | Path,
+        figsize: tuple[int, int] = (6, 3),
+        tight_layout: bool = True,
+    ):
+        """Save the plot to a file"""
+        print("called", fname)
+        fig, ax = plt.subplots(figsize=figsize)
+        self.plot(ax)
+        ax.grid(True)
+        if tight_layout:
+            plt.tight_layout()
+        plt.savefig(fname)
+        plt.close(fig)
 
 
 ##########
@@ -186,12 +254,12 @@ class RMSMetric(EvaluationMetricScalar):
 
     @property
     @EvaluationMetric.result_full_wrapper
-    def result_full(self) -> tuple[float]:
+    def result_full(self) -> tuple[np.floating | float]:
         rms = np.sqrt(np.mean(np.square(np.concatenate(self.residual))))  # type: ignore[arg-type]
         return (rms,)
 
     @staticmethod
-    def result_to_text(result_full: tuple[float, ...]) -> str:
+    def result_to_text(result_full: tuple[float | np.floating, ...]) -> str:
         return f"Residual RMS: {result_full[0]:f}"
 
 
@@ -202,7 +270,7 @@ class MSEMetric(EvaluationMetricScalar):
 
     @property
     @EvaluationMetric.result_full_wrapper
-    def result_full(self) -> tuple[float]:
+    def result_full(self) -> tuple[np.floating | float]:
         mse = np.mean(np.square(np.concatenate(self.residual)))
         return (mse,)
 
@@ -223,6 +291,8 @@ class BandwidthPowerMetric(EvaluationMetricScalar):
     name = "Residual power on frequency range"
 
     def __init__(self, f_start: float, f_stop: float, n_fft: int = 1024, window="hann"):
+        super().__init__(f_start=f_start, f_stop=f_stop, n_fft=n_fft, window=window)
+
         if f_start <= 0 or f_stop <= 0:
             raise ValueError("Frequencies must be positive")
         if n_fft < 2:
@@ -232,13 +302,6 @@ class BandwidthPowerMetric(EvaluationMetricScalar):
         self.f_stop = f_stop
         self.n_fft = n_fft
         self.window = window
-
-        self.parameters = {
-            "f_start": f_start,
-            "f_stop": f_stop,
-            "n_fft": n_fft,
-            "window": window,
-        }
 
         self.name = f"Residual power ({f_start}-{f_stop} Hz)"
 
@@ -276,13 +339,19 @@ class PSDMetric(EvaluationMetricPlottable):
 
     name = "Power spectral density"
 
+    @EvaluationMetric.init_wrapper
     def __init__(
         self,
         n_fft: int = 1024,
         window: str = "hann",
         logx: bool = True,
         logy: bool = True,
+        show_target: bool = True,
     ):
+        super().__init__(
+            n_fft=n_fft, window=window, logx=logx, logy=logy, show_target=show_target
+        )
+
         if n_fft < 2:
             raise ValueError("n_fft must be greater than 1")
 
@@ -290,30 +359,40 @@ class PSDMetric(EvaluationMetricPlottable):
         self.window = window
         self.logx = logx
         self.logy = logy
+        self.show_target = show_target
 
-        self.parameters = {
-            "n_fft": n_fft,
-            "window": window,
-            "logx": logx,
-            "logy": logy,
-        }
-
-    @property
-    @EvaluationMetric.result_full_wrapper
-    def result_full(self) -> tuple[NDArray, NDArray]:
-        f, S_rr = welch_multiple_sequences(
-            self.residual,
+    def _welch_multiple_sequences(self, signal: Sequence[NDArray]):
+        """apply welch_multiple_sequences() with correct settings"""
+        return welch_multiple_sequences(
+            signal,
             nperseg=self.n_fft,
             fs=self.dataset.sample_rate,
             window=self.window,
             scaling="density",
         )
+
+    @property
+    @EvaluationMetric.result_full_wrapper
+    def result_full(self) -> tuple[NDArray, NDArray]:
+        f, S_rr = self._welch_multiple_sequences(self.residual)
         return (S_rr, f)
 
     def plot(self, ax: Axes):
-        """Get the evaluation result"""
-        ax.plot(*self.result_full)
+        """Plot to the given Axes object"""
+        freq = self.result_full[1]
+        ax.plot(freq, self.result, label="Residual")
+        if self.show_target:
+            f, Stt = self._welch_multiple_sequences(self.dataset.target_evaluation)
+            ax.plot(f, Stt, label="Target")
+            plt.legend()
+
+        ax.set_xlabel("Frequency [Hz]")
+        ax.set_ylabel(f"PSD [({self.dataset.target_unit})$^2$/Hz]")
+
         if self.logx:
             ax.set_xscale("log")
+            ax.set_xlim(min(freq[freq > 0]), max(freq))
+        else:
+            ax.set_xlim(min(freq), max(freq))
         if self.logy:
             ax.set_yscale("log")

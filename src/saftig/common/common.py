@@ -12,6 +12,11 @@ def bytes2int(data: bytes) -> int:
     return int.from_bytes(data, "big")
 
 
+def bytes2str(data: bytes) -> str:
+    """Convert bytes into a base64 like string"""
+    return b64encode(data).decode().replace("/", "#")
+
+
 def hash_function(data: bytes) -> bytes:
     """The hash function used to identify similar datasets, methods, configurations, ..
     Returns a bytes object
@@ -30,7 +35,7 @@ def hash_function_str(data: bytes) -> str:
     """The hash function used to identify similar datasets, methods, configurations, ..
     Returns an base64 string
     """
-    return b64encode(hash_function(data)).decode().replace("/", "#")
+    return bytes2str(hash_function(data))
 
 
 def hash_object_list(objects: Sequence) -> bytes:

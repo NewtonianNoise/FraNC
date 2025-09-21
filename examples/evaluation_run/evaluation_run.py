@@ -7,6 +7,7 @@ if __name__ == "__main__":
     dataset = sg.eval.TestDataGenerator(
         [0.1] * n_channel, rng_seed=831011041148397102116105103
     ).dataset([int(1e5)], [int(1e5)])
+    dataset.target_unit = "AU"
 
     # define evaluation run
     eval_run = sg.eval.EvaluationRun(
@@ -22,7 +23,7 @@ if __name__ == "__main__":
         ],
         dataset,
         sg.eval.RMSMetric(),
-        [sg.eval.MSEMetric()],
+        [sg.eval.MSEMetric(), sg.eval.PSDMetric()],
     )
 
     # execute evaluation run
