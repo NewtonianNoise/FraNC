@@ -4,7 +4,7 @@ requires = ["meson-python", "ninja", "numpy >= 2.0.0"]
 
 [project]
 name = "franc"
-version = "0.2.0"
+version = "0.3.0a1"
 description = "Implementations of different static and adaptive filtering techniques for the prediction of a correlated signal component from witness signals."
 readme = "README.md"
 license = "GPL-3.0-only"
