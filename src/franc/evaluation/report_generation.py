@@ -30,16 +30,25 @@ class ReportFigure(ReportElement):  # pylint: disable=too-few-public-methods
     def latex(self) -> str:
         caption = f"\\caption{{{self.caption}}}" if self.caption is not None else ""
         return (
-            r"\begin{figure}[h]\n"
-            r"    \centering\n"
-            f"    \\includegraphics[width={self.width:f}\\textwidth]{{{self.image_path}}}\n"
+            f"\\begin{{figure}}[h]\n"
+            f"    \\centering\n"
+            f'    \\includegraphics[width={self.width:f}\\textwidth]{{"{self.image_path}"}}\n'
             f"    {caption}\n"
-            r"\end{figure}\n"
+            f"\\end{{figure}}\n"
         )
 
 
 class ReportTable(ReportElement):  # pylint: disable=too-few-public-methods
-    """Table element for reports"""
+    """Table element for reports
+
+    :param table_content: Two dimensional sequence of strings representing the table
+        Content will be placed in a \\verb statement with the defined character being removed
+    :param header: Header values of the table. If none are provided, no header is generated
+    :param caption: Caption for the table
+    :param cell_format: A sequence of latex format values. The default for a 4 column table is {cccc} resulting in centered tables
+    :param horizontal_separator: If no cell format value is provided, this can be used to enable vertical lines.
+    :param verb_char: Character used for the \\verb statements on table content. This character will be removed from the cell content strings.
+    """
 
     def __init__(
         self,
@@ -48,6 +57,7 @@ class ReportTable(ReportElement):  # pylint: disable=too-few-public-methods
         caption: str | None = None,
         cell_format: str | None = None,
         horizontal_separator: str = " ",
+        verb_char: str = "|",
     ):
         for row_idx, row in enumerate(table_content):
             if len(row) != len(table_content[0]):
@@ -61,6 +71,7 @@ class ReportTable(ReportElement):  # pylint: disable=too-few-public-methods
             if cell_format is not None
             else horizontal_separator.join("c" for _ in range(len(table_content[0])))
         )
+        self.verb_char = verb_char
         if header is None:
             self.header = ""
         else:
@@ -74,10 +85,17 @@ class ReportTable(ReportElement):  # pylint: disable=too-few-public-methods
         caption = f"\\caption{{{self.caption}}}" if self.caption is not None else ""
         table_content_str = ""
         for row in self.table_content:
+            row = [
+                "\\verb"
+                + self.verb_char
+                + cell_value.replace(self.verb_char, "")
+                + self.verb_char
+                for cell_value in row
+            ]
             table_content_str += (" " * 4) + " & ".join(row) + "\\\\\n"
 
         return (
-            f"\\begin{{figure}}[h]\n"
+            f"\\begin{{table}}[h]\n"
             f"    \\centering\n"
             f"    {caption}\n"
             f"    \\begin{{tabular}}{{{self.format}}}\n"
@@ -86,7 +104,7 @@ class ReportTable(ReportElement):  # pylint: disable=too-few-public-methods
             f"{table_content_str}"
             f"    \\hline\n"
             f"    \\end{{tabular}}\n"
-            f"\\end{{figure}}\n"
+            f"\\end{{table}}\n"
         )
 
 
@@ -150,7 +168,8 @@ class Report(dict):
 
     def save(self, fname: str | Path) -> None:
         """Save latex code to file"""
-        with open(fname, "w", encoding="UTF-8") as f:
+        fname = Path(fname)
+        with open(fname.with_suffix(".tex"), "w", encoding="UTF-8") as f:
             f.write(self.generate())
 
     def compile(self, fname: str | Path) -> Path:
@@ -162,7 +181,7 @@ class Report(dict):
         fname = Path(fname)
         self.save(fname.with_suffix(".tex"))
         retval = subprocess.run(
-            ["pdflatex", "-halt-on-error", fname.with_suffix(".tex")],
+            ["pdflatex", "-halt-on-error", fname.with_suffix(".tex").name],
             cwd=fname.parent,
             check=False,
         )

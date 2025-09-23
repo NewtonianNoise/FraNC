@@ -83,7 +83,6 @@ class EvaluationMetric(abc.ABC):
     @staticmethod
     def init_wrapper(func):
         """A decorator for the __init__function
-
         Saves a hash value for the configuration
         """
 
@@ -222,6 +221,8 @@ class EvaluationMetricScalar(EvaluationMetric):
 class EvaluationMetricPlottable(EvaluationMetric):
     """Parent class for evaluation metrics that provide a plotting feature"""
 
+    plot_path: str | Path | None = None
+
     @abc.abstractmethod
     def plot(self, ax: Axes):
         """Generate a result plot on the given axes object"""
@@ -229,11 +230,13 @@ class EvaluationMetricPlottable(EvaluationMetric):
     def save_plot(
         self,
         fname: str | Path,
-        figsize: tuple[int, int] = (6, 3),
+        figsize: tuple[int, int] = (10, 4),
         tight_layout: bool = True,
     ):
         """Save the plot to a file"""
-        print("called", fname)
+        # set serif font globally for matplotlib
+        plt.rcParams["font.family"] = "serif"
+
         fig, ax = plt.subplots(figsize=figsize)
         self.plot(ax)
         ax.grid(True)
@@ -241,6 +244,12 @@ class EvaluationMetricPlottable(EvaluationMetric):
             plt.tight_layout()
         plt.savefig(fname)
         plt.close(fig)
+
+        self.plot_path = fname
+
+    def filename(self, context: str) -> str:
+        """Generate a filename that includes the given context string"""
+        return self.name + "_" + context + "_" + self.method_hash_str + ".pdf"
 
 
 ##########

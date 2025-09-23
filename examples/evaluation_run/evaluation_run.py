@@ -27,7 +27,7 @@ if __name__ == "__main__":
     )
 
     # execute evaluation run
-    for entry in eval_run.run():
+    for entry in eval_run.run(compile_report=True):
         pass
 
     print("done")
