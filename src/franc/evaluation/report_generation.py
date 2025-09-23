@@ -30,7 +30,7 @@ class ReportFigure(ReportElement):  # pylint: disable=too-few-public-methods
     def latex(self) -> str:
         caption = f"\\caption{{{self.caption}}}" if self.caption is not None else ""
         return (
-            f"\\begin{{figure}}[h]\n"
+            f"\\begin{{figure}}[H]\n"
             f"    \\centering\n"
             f'    \\includegraphics[width={self.width:f}\\textwidth]{{"{self.image_path}"}}\n'
             f"    {caption}\n"
@@ -117,6 +117,15 @@ class Report(dict):
 \usepackage{float}
 \usepackage{caption}
 \usepackage{graphicx}
+\usepackage{listings}
+\usepackage{amsmath} % red arrow for listing line break
+
+\lstset{
+breaklines=true,
+postbreak=\mbox{{$\hookrightarrow$}\space},
+}
+
+
 \begin{document}
 """
 

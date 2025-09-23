@@ -16,3 +16,14 @@ __all__ = [
     "evaluation",
     "filtering",
 ]
+
+
+# expose package version
+def get_package_version():
+    """wrapping function to hide import statement from doctest discovery"""
+    import importlib.metadata  # pylint: disable=import-outside-toplevel
+
+    return importlib.metadata.version(__name__)
+
+
+__version__ = get_package_version()

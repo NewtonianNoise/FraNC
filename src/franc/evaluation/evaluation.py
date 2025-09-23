@@ -2,19 +2,25 @@
 
 from typing import Any
 from collections.abc import Sequence
+import sys
 import os
 from pathlib import Path
 from timeit import timeit
 from copy import deepcopy
+import importlib.metadata
+from datetime import datetime
+import inspect
 
 import numpy as np
 from numpy.typing import NDArray
+import scipy
+import numba
 
 from .common import total_power
 from .dataset import EvaluationDataset
 from .metrics import EvaluationMetric, EvaluationMetricScalar, EvaluationMetricPlottable
 from ..filtering import FilterBase
-from ..common import hash_function_str
+from ..common import hash_function_str, get_platform_info
 from .report_generation import Report, ReportTable, ReportFigure
 
 NDArrayF = NDArray[np.floating]
@@ -364,6 +370,24 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         print(filter_technique.filter_name, f"({status})")
         return pred, result_filename
 
+    @staticmethod
+    def software_version_report() -> list[str]:
+        """generate a list of strings indicating the important software versions"""
+        this_package_name = __name__.split(".", maxsplit=1)[0]
+
+        version_strings = [
+            f"Python: {sys.version}\n",
+            f"{this_package_name}: {importlib.metadata.version(this_package_name)}\n",
+        ]
+        for package in [np, scipy, numba]:
+            version_strings += [f"{package.__name__}: {package.__version__}\n"]
+        return version_strings
+
+    @staticmethod
+    def platform_info_report() -> list[str]:
+        """generate a list of strings indicating platform information (cpu, OS, ..)"""
+        return [get_platform_info()]
+
     def run(self, compile_report: bool = False) -> list[tuple[type[FilterBase], list]]:
         """Execute the evaluation run
 
@@ -414,12 +438,25 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 )
 
         report = Report()
-        report["Overview"] = {}
+
+        # generate overview page
+        report["Overview"] = {
+            "General": "Report generated: "
+            + datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
+            "Platform": self.platform_info_report(),
+            "Software versions": self.software_version_report(),
+            "Evaluation dataset": self.dataset.description().replace("\n", "\n\n"),
+        }
+
         report["Results overview"] = {}
         report["Results detailed"] = {}
 
+        # generate report entries for every tested configuration
         for filter_technique, configurations in results:
-            detailed_report_entries = {}
+            docstring = inspect.getdoc(filter_technique).split(">>>")[0]
+            detailed_report_entries = {
+                "Overview": f"\\begin{{lstlisting}}{docstring}\\end{{lstlisting}}"
+            }
 
             for conf_idx, (
                 conf,
@@ -428,13 +465,13 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 metrics,
             ) in enumerate(configurations):
                 entry = []
-                entry.append(optimization_metric.text + "\n\n")
                 entry.append(
                     ReportTable(
                         [(str(key), str(value)) for key, value in conf.items()],
                         caption="Configuration values",
                     )
                 )
+                entry.append(optimization_metric.text + "\n\n")
                 for metric in metrics:
                     if (
                         isinstance(metric, EvaluationMetricPlottable)
