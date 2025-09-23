@@ -4,7 +4,7 @@ import unittest
 from copy import deepcopy
 import numpy as np
 
-import saftig as sg
+import franc as fnc
 
 
 class TestEvaluationDataset(unittest.TestCase):
@@ -22,21 +22,21 @@ class TestEvaluationDataset(unittest.TestCase):
         witness, target = self.simple_test_data()
         signal = target
 
-        sg.evaluation.EvaluationDataset(1.0, witness, target, witness, target)
-        sg.evaluation.EvaluationDataset(1.0, witness, target, witness, target, signal)
-        sg.evaluation.EvaluationDataset(
+        fnc.evaluation.EvaluationDataset(1.0, witness, target, witness, target)
+        fnc.evaluation.EvaluationDataset(1.0, witness, target, witness, target, signal)
+        fnc.evaluation.EvaluationDataset(
             1.0, witness, target, witness, target, signal, signal
         )
-        sg.evaluation.EvaluationDataset(
+        fnc.evaluation.EvaluationDataset(
             1.0, witness, target, witness, target, name="Dataset Name"
         )
-        sg.evaluation.EvaluationDataset(
+        fnc.evaluation.EvaluationDataset(
             1.0, witness, target, witness, target, signal, signal, "Dataset Name"
         )
 
     def test_wrong_input(self):
         """Check that malformed input results in adequate errors"""
-        from saftig.evaluation import (  # pylint: disable=import-outside-toplevel
+        from franc.evaluation import (  # pylint: disable=import-outside-toplevel
             EvaluationDataset,
         )
 
@@ -120,14 +120,14 @@ class TestEvaluationDataset(unittest.TestCase):
         for td1, td2 in [(test_data1, test_data2), (test_data2, test_data1)]:
             # list(zip(*x)) transposes the first two dimensions
             # using numpy arrays is not possible as the lengths of the last dimension are not consistent
-            min_len = sg.evaluation.EvaluationDataset(
+            min_len = fnc.evaluation.EvaluationDataset(
                 1.0, list(zip(*[td1, td1])), td1, list(zip(*[td2, td2])), td2
             ).get_min_sequence_len()
             self.assertEqual(min_len, 3)
 
     def test_hash(self):
         """Test hashability of the object and that changes in each parameter affect the hash value."""
-        from saftig.evaluation import (  # pylint: disable=import-outside-toplevel
+        from franc.evaluation import (  # pylint: disable=import-outside-toplevel
             EvaluationDataset,
         )
 

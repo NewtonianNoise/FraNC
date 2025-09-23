@@ -1,6 +1,6 @@
 """Tests for PolynomialLMSFilter class"""
 
-import saftig as sg
+import franc as fnc
 
 # from .test_filters import TestFilter
 from .test_lms import TestLMSFilter
@@ -20,4 +20,4 @@ class TestPolynomialLMSFilter(TestLMSFilter):
             {"order": 2},
             {"order": 1, "normalized": False, "step_scale": 0.001},
         ]
-        self.set_target(sg.filtering.PolynomialLMSFilter, test_configurations)
+        self.set_target(fnc.filtering.PolynomialLMSFilter, test_configurations)

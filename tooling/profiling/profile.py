@@ -10,7 +10,7 @@ import psutil
 import numpy as np
 from numpy.typing import NDArray
 
-import saftig as sg
+import franc as fnc
 
 MULTITHREAD = True
 
@@ -19,18 +19,26 @@ IGNORE_FILTER_OPTIONS = {"coefficient_clipping", "step_scale"}
 
 # filter, additional_filter_config, skip_conditioning
 FILTER_CONFIGURATIONS = [
-    (sg.filtering.WienerFilter, {}, False),
-    (sg.filtering.UpdatingWienerFilter, {"context_pre": 3000}, True),
-    (sg.filtering.LMSFilter, {"normalized": True, "coefficient_clipping": 10}, False),
-    (sg.filtering.PolynomialLMSFilter, {"order": 1, "coefficient_clipping": 10}, False),
-    (sg.filtering.PolynomialLMSFilter, {"order": 3, "coefficient_clipping": 10}, False),
+    (fnc.filtering.WienerFilter, {}, False),
+    (fnc.filtering.UpdatingWienerFilter, {"context_pre": 3000}, True),
+    (fnc.filtering.LMSFilter, {"normalized": True, "coefficient_clipping": 10}, False),
+    (
+        fnc.filtering.PolynomialLMSFilter,
+        {"order": 1, "coefficient_clipping": 10},
+        False,
+    ),
+    (
+        fnc.filtering.PolynomialLMSFilter,
+        {"order": 3, "coefficient_clipping": 10},
+        False,
+    ),
 ]
 
 if DEBUG:
     FILTER_CONFIGURATIONS = [
-        (sg.filtering.WienerFilter, {}, False),
-        (sg.filtering.LMSFilter, {"normalized": True}, False),
-        (sg.filtering.UpdatingWienerFilter, {"context_pre": 1000}, True),
+        (fnc.filtering.WienerFilter, {}, False),
+        (fnc.filtering.LMSFilter, {"normalized": True}, False),
+        (fnc.filtering.UpdatingWienerFilter, {"context_pre": 1000}, True),
     ]
 
 
@@ -110,13 +118,13 @@ def run_profiling(config, n_samples, n_filter, n_channel, idx_target=0):
 
     :param config: filter configurations as a list of (filter_instance, additional_filter_params, clear_conditioning_runtime)
                     setting clear_conditioning_runtime to True will set the conditioning runtime to np.nan
-    :params n_samples, n_filter, n_channel, idx_target: passed on to saftig.measure_runtime()
+    :params n_samples, n_filter, n_channel, idx_target: passed on to franc.measure_runtime()
     """
     filters = map(lambda x: x[0], config)
     additional_settings = map(lambda x: x[1], config)
     skip_conditioning = list(map(lambda x: x[2], config))
 
-    results = sg.evaluation.measure_runtime(
+    results = fnc.evaluation.measure_runtime(
         filters,
         n_samples,
         n_filter=n_filter,

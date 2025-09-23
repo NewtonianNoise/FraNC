@@ -9,9 +9,9 @@ from numpy.typing import NDArray
 def total_power(a: Sequence[float] | NDArray[np.floating]) -> float:
     """calculate the total power of a signal (square or RMS)
 
-    >>> import saftig, numpy
+    >>> import franc, numpy
     >>> signal = numpy.ones(10) * 2
-    >>> saftig.evaluation.total_power(signal)
+    >>> franc.evaluation.total_power(signal)
     4.0
 
     """

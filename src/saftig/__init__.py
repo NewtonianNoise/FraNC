@@ -2,9 +2,9 @@
 Implementations of prediction techniques with a unified interface.
 """
 
-from saftig import evaluation
-from saftig import filtering
-from saftig import external
+from franc import evaluation
+from franc import filtering
+from franc import external
 
 eval = evaluation  # pylint: disable=redefined-builtin
 filt = filtering

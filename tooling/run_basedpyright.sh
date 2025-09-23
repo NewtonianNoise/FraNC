@@ -1,2 +1,2 @@
 #!/bin/sh
-basedpyright $(git ls-files 'src/saftig/*.py' 'tooling/*.py' 'tooling/*/*.py')
+basedpyright $(git ls-files 'src/*.py' 'tooling/*.py' 'testing/*.py')

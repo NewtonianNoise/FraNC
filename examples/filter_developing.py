@@ -1,4 +1,4 @@
-import saftig
+import franc
 from icecream import ic
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,15 +17,15 @@ A = np.random.rand(N_filter, N_filter)
 
 if __name__ == "__main__":
 
-    w, t = saftig.evaluation.TestDataGenerator([0.1] * N_channel).generate(N)
+    w, t = franc.evaluation.TestDataGenerator([0.1] * N_channel).generate(N)
 
-    # filt = saftig.filtering.WienerFilter(N_filter, 0, N_channel)
-    # filt = saftig.filtering.UpdatingWienerFilter(N_filter, 0, N_channel, 20*N_filter, 20*N_filter)
-    # filt = saftig.filtering.LMSFilter(N_filter, 0, N_channel, step_scale=0.1)
-    filt = saftig.filtering.PolynomialLMSFilter(
+    # filt = franc.filtering.WienerFilter(N_filter, 0, N_channel)
+    # filt = franc.filtering.UpdatingWienerFilter(N_filter, 0, N_channel, 20*N_filter, 20*N_filter)
+    # filt = franc.filtering.LMSFilter(N_filter, 0, N_channel, step_scale=0.1)
+    filt = franc.filtering.PolynomialLMSFilter(
         N_filter, 0, N_channel, step_scale=0.1, order=3, coefficient_clipping=5
     )
-    # filt = saftig.filtering.external.SpicypyWienerFilter(N_filter, 0, N_channel)
+    # filt = franc.filtering.external.SpicypyWienerFilter(N_filter, 0, N_channel)
 
     filt.condition(w, t)
     fs_before = np.array(filt.filter_state)
@@ -44,9 +44,9 @@ if __name__ == "__main__":
     ic(pred.shape)
     ic(pred.shape[0] - t.shape[0])
 
-    ic(saftig.evaluation.rms(t[2000:]))
-    ic(saftig.evaluation.rms((t - pred)[2000:]))
-    ic(saftig.evaluation.residual_amplitude_ratio(t, pred, start=2000))
+    ic(franc.evaluation.rms(t[2000:]))
+    ic(franc.evaluation.rms((t - pred)[2000:]))
+    ic(franc.evaluation.residual_amplitude_ratio(t, pred, start=2000))
 
     plt.figure()
     plt.plot(t, label="target")

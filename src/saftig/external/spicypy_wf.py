@@ -1,4 +1,4 @@
-"""A wrapper for spicypy.signal.WienerFilter with the saftig.common.FilterBase interface.
+"""A wrapper for spicypy.signal.WienerFilter with the franc.common.FilterBase interface.
 This is intended to allow comparisons between the implementations.
 """
 
@@ -24,10 +24,10 @@ class SpicypyWienerFilter(FilterBase):
     :param idx_target: Position of the prediction
     :param n_channel: Number of witness sensor channels
 
-    >>> import saftig as sg
+    >>> import franc as fnc
     >>> n_filter = 10
-    >>> witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e3))
-    >>> filt = sg.external.SpicypyWienerFilter(n_filter, 0, 1)
+    >>> witness, target = fnc.evaluation.TestDataGenerator(0.1).generate(int(1e3))
+    >>> filt = fnc.external.SpicypyWienerFilter(n_filter, 0, 1)
     >>> sp_filt = filt.condition(witness, target)
     >>> prediction = filt.apply(witness, target) # apply to training data
 

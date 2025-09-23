@@ -93,13 +93,13 @@ class PolynomialLMSFilter(FilterBase):
            will be limited to this value. This can increase filter stability.
     :param order: Polynomial order of the filter
 
-    >>> import saftig as sg
+    >>> import franc as fnc
     >>> n_filter = 128
-    >>> witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e5))
-    >>> filt = sg.filtering.PolynomialLMSFilter(n_filter, 0, 1, step_scale=0.1, order=2, coefficient_clipping=4)
+    >>> witness, target = fnc.evaluation.TestDataGenerator(0.1).generate(int(1e5))
+    >>> filt = fnc.filtering.PolynomialLMSFilter(n_filter, 0, 1, step_scale=0.1, order=2, coefficient_clipping=4)
     >>> filt.condition(witness, target)
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
-    >>> residual_rms = sg.evaluation.rms((target-prediction)[1000:])
+    >>> residual_rms = fnc.evaluation.rms((target-prediction)[1000:])
     >>> residual_rms > 0.05 and residual_rms < 0.15 # the expected RMS in this test scenario is 0.1
     True
 

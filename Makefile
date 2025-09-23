@@ -2,12 +2,12 @@ SHELL := /bin/bash
 
 all: ie doc coverage linter mypy
 ie:
-	pip install --no-build-isolation -e .
+	pip install --no-build-isolation -e ".[dev]"
 
 test:
 	python -m unittest discover .
 pytest:
-	pytest --doctest-modules src/saftig/
+	pytest --doctest-modules src/franc/
 	pytest
 test_time:
 	python -m unittest discover . --duration=5
@@ -36,10 +36,10 @@ view: doc
 clean:
 	-rm -r build/
 	-rm -r dist/
-	-rm -r saftig/__pycache__/
+	-rm -r franc/__pycache__/
 	-rm *.so
-	-rm saftig/*.so
-	-rm -r SAFTIG.egg-info/
+	-rm franc/*.so
+	-rm -r FRANC.egg-info/
 	-rm -r htmlcov
 
 testpublish:

@@ -137,15 +137,15 @@ class WienerFilter(FilterBase):
     :param idx_target: Position of the prediction
     :param n_channel: Number of witness sensor channels
 
-    >>> import saftig as sg
+    >>> import franc as fnc
     >>> n_filter = 128
-    >>> witness, target = sg.evaluation.TestDataGenerator(0.1).generate(int(1e5))
-    >>> filt = sg.filtering.WienerFilter(n_filter, 0, 1)
+    >>> witness, target = fnc.evaluation.TestDataGenerator(0.1).generate(int(1e5))
+    >>> filt = fnc.filtering.WienerFilter(n_filter, 0, 1)
     >>> _coefficients, full_rank = filt.condition(witness, target)
     >>> full_rank
     True
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
-    >>> residual_rms = sg.evaluation.rms(target-prediction)
+    >>> residual_rms = fnc.evaluation.rms(target-prediction)
     >>> residual_rms > 0.05 and residual_rms < 0.15 # the expected RMS in this test scenario is 0.1
     True
 

@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "SAFTIG"
+project = "FraNC"
 copyright = "2025, Tim Kuhlbusch"
 author = "Tim Kuhlbusch"
 

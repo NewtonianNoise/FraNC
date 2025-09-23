@@ -3,7 +3,7 @@
 import unittest
 import numpy as np
 
-import saftig as sg
+import franc as fnc
 
 from ..toolbox import calc_mean_asd
 
@@ -16,7 +16,7 @@ class TestTestDataGenerator(
     def test_output_shapes(self):
         """check that the generated data has the correct shape"""
         N_channels = 4
-        tdg = sg.evaluation.TestDataGenerator(witness_noise_level=[1] * N_channels)
+        tdg = fnc.evaluation.TestDataGenerator(witness_noise_level=[1] * N_channels)
         witness, target = tdg.generate(1000)
 
         self.assertEqual(witness.shape, (N_channels, 1000))
@@ -27,7 +27,7 @@ class TestTestDataGenerator(
         sample_rate = 123.0
         w_noise_levels = [0.1, 1, 2, 3, 4]
 
-        tdg = sg.evaluation.TestDataGenerator(
+        tdg = fnc.evaluation.TestDataGenerator(
             witness_noise_level=w_noise_levels, sample_rate=sample_rate
         )
         witness, target = tdg.generate(int(5e5))
@@ -46,7 +46,7 @@ class TestTestDataGenerator(
         """check that the transfer function amplitude is applied correctly"""
         transfer_amplitude = 3.14
 
-        tdg = sg.evaluation.TestDataGenerator(
+        tdg = fnc.evaluation.TestDataGenerator(
             witness_noise_level=0, transfer_function=transfer_amplitude
         )
         witness, target = tdg.generate(10)
@@ -55,8 +55,8 @@ class TestTestDataGenerator(
 
     def test_dataset_generation(self):
         """check that generating a dataset is possible"""
-        tdg = sg.evaluation.TestDataGenerator(witness_noise_level=[1] * 3)
-        self.assertIsInstance(tdg.dataset([10], [10]), sg.evaluation.EvaluationDataset)
+        tdg = fnc.evaluation.TestDataGenerator(witness_noise_level=[1] * 3)
+        self.assertIsInstance(tdg.dataset([10], [10]), fnc.evaluation.EvaluationDataset)
 
 
 # there is no tesing for the residual_power_ratio function, as it is indirectly tested through the amplitude wrapper
@@ -68,10 +68,11 @@ class TestResidualAmplitudeRatio(unittest.TestCase):
         a = np.array([3, 4])
         b = np.array([np.sqrt(0.5), -np.sqrt(0.5)])
         self.assertAlmostEqual(
-            sg.evaluation.residual_amplitude_ratio(a, a + b, remove_dc=False), 1 / 5
+            fnc.evaluation.residual_amplitude_ratio(a, a + b, remove_dc=False), 1 / 5
         )
         self.assertAlmostEqual(
-            sg.evaluation.residual_amplitude_ratio(a, a + b, remove_dc=True), np.sqrt(2)
+            fnc.evaluation.residual_amplitude_ratio(a, a + b, remove_dc=True),
+            np.sqrt(2),
         )
 
 
@@ -80,14 +81,14 @@ class TestMeasureRuntime(unittest.TestCase):
 
     def test_causality(self):
         """check that results follow basic expectations"""
-        result_100 = sg.evaluation.measure_runtime(
-            [sg.filtering.WienerFilter], n_samples=int(1e4)
+        result_100 = fnc.evaluation.measure_runtime(
+            [fnc.filtering.WienerFilter], n_samples=int(1e4)
         )
-        result_1000 = sg.evaluation.measure_runtime(
-            [sg.filtering.WienerFilter], n_samples=int(1e5), repititions=2
+        result_1000 = fnc.evaluation.measure_runtime(
+            [fnc.filtering.WienerFilter], n_samples=int(1e5), repititions=2
         )
-        result_1000_repeated = sg.evaluation.measure_runtime(
-            [sg.filtering.WienerFilter], n_samples=int(1e5), repititions=4
+        result_1000_repeated = fnc.evaluation.measure_runtime(
+            [fnc.filtering.WienerFilter], n_samples=int(1e5), repititions=4
         )
 
         self.assertLess(result_100[1][0], result_1000[1][0])
@@ -105,13 +106,13 @@ class TestEvaluationRun(unittest.TestCase):
         """Check basic functionality of the get_all_configurations function"""
         n_channel = 3
 
-        dataset = sg.evaluation.TestDataGenerator(
+        dataset = fnc.evaluation.TestDataGenerator(
             witness_noise_level=[1] * n_channel
         ).dataset([1000], [1000])
 
         method_configurations = [
             (
-                sg.filtering.WienerFilter,
+                fnc.filtering.WienerFilter,
                 [
                     {"n_filter": n_filter, "idx_target": 0, "n_channel": n_channel}
                     for n_filter in [10, 12]
@@ -119,10 +120,10 @@ class TestEvaluationRun(unittest.TestCase):
             )
         ]
         # enter the same configuration twice. It should only show up once in the result
-        er = sg.evaluation.EvaluationRun(
+        er = fnc.evaluation.EvaluationRun(
             method_configurations * 2,
             dataset,
-            sg.evaluation.RMSMetric(),
+            fnc.evaluation.RMSMetric(),
         )
 
         expected_result = [

@@ -1,29 +1,32 @@
-# saftig – Static & Adaptive Filtering Techniques In Gravitational-wave-research
+# FraNC - Framework for Noise Cancellation in gravitational wave detection
 
-![Test status](https://github.com/timbk/saftig/actions/workflows/testing.yml/badge.svg)
-![Linting status](https://github.com/timbk/saftig/actions/workflows/pylint.yml/badge.svg)
-![Static type check status](https://github.com/timbk/saftig/actions/workflows/mypy.yml/badge.svg)
+![Test status](https://github.com/NewtonianNoise/franc/actions/workflows/testing.yml/badge.svg)
+![Linting status](https://github.com/NewtonianNoise/franc/actions/workflows/pylint.yml/badge.svg)
+![Static type check status](https://github.com/NewtonianNoise/franc/actions/workflows/mypy.yml/badge.svg)
 
 Python implementations of different static and adaptive filtering techniques for the prediction of a correlated signal component from witness signals.
 The main goal is to provide a unified interface for the different filtering techniques.
 
-[Documentation](https://saftig.readthedocs.io/en/latest/)
+[Documentation](https://franc.readthedocs.io/en/latest/)
 
 ## Features
 
 Static:
+
 * Wiener Filter (WF)
 
 Adaptive
+
 * Updating Wiener Fitler (UWF)
 * Least-Mean-Squares Filter (LMS)
 
 Non-Linear:
+
 * Experimental non-linear LMS Filter variant (PolynomialLMS)
 
 ## Install
 
-From pypi: `pip install saftig`
+From pypi: `pip install franc`
 
 From repository: `pip install .`
 
@@ -32,19 +35,19 @@ From repository (editable): `make ie`
 ## Minimal example
 
 ```python
->>> import saftig as sg
+>>> import franc as fnc
 >>>
 >>> # generate data
 >>> n_channel = 2
->>> witness, target = sg.eval.TestDataGenerator([0.1]*n_channel).generate(int(1e5))
+>>> witness, target = fnc.eval.TestDataGenerator([0.1]*n_channel).generate(int(1e5))
 >>>
 >>> # instantiate the filter and apply it
->>> filt = sg.filt.LMSFilter(n_filter=128, idx_target=0, n_channel=n_channel)
+>>> filt = fnc.filt.LMSFilter(n_filter=128, idx_target=0, n_channel=n_channel)
 >>> filt.condition(witness, target)
 >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
 >>>
 >>> # success
->>> sg.eval.RMS(target-prediction) / sg.eval.RMS(prediction)
+>>> fnc.eval.RMS(target-prediction) / fnc.eval.RMS(prediction)
 0.08221177645361015
 ```
 

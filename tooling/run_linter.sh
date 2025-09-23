@@ -1,2 +1,2 @@
 #!/bin/sh
-pylint --rcfile=pylint.rc --fail-under=10 $(git ls-files 'src/saftig/*.py' 'tooling/*.py' 'testing/*.py')
+pylint --rcfile=pylint.rc --fail-under=10 $(git ls-files 'src/*.py' 'tooling/*.py' 'testing/*.py')

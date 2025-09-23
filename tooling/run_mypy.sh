@@ -1,2 +1,2 @@
 #!/bin/sh
-mypy $(git ls-files 'src/saftig/*.py' 'tooling/*.py' 'testing/*.py' 'examples/*.py')
+mypy $(git ls-files 'src/*.py' 'tooling/*.py' 'testing/*.py' 'examples/*.py')

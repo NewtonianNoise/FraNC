@@ -25,17 +25,17 @@ Minimal example
 
 .. code-block:: python
 
-    >>> import saftig as sg
+    >>> import franc as fnc
     >>>
     >>> # generate data
     >>> n_channel = 2
-    >>> witness, target = sg.eval.TestDataGenerator([0.1]*n_channel).generate(int(1e5))
+    >>> witness, target = fnc.eval.TestDataGenerator([0.1]*n_channel).generate(int(1e5))
     >>>
     >>> # instantiate the filter and apply it
-    >>> filt = sg.filt.LMSFilter(n_filter=128, idx_target=0, n_channel=n_channel)
+    >>> filt = fnc.filt.LMSFilter(n_filter=128, idx_target=0, n_channel=n_channel)
     >>> filt.condition(witness, target)
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
     >>>
     >>> # success
-    >>> sg.eval.RMS(target-prediction) / sg.eval.RMS(prediction)
+    >>> fnc.eval.RMS(target-prediction) / fnc.eval.RMS(prediction)
     0.08221177645361015
