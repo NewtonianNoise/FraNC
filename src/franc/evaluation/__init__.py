@@ -18,6 +18,7 @@ from .evaluation import (
     residual_amplitude_ratio,
     measure_runtime,
 )
+from .report_generation import ReportElement
 
 __all__ = [
     "rms",
@@ -35,4 +36,5 @@ __all__ = [
     "residual_power_ratio",
     "residual_amplitude_ratio",
     "measure_runtime",
+    "ReportElement",
 ]

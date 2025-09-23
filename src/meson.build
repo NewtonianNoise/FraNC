@@ -24,6 +24,7 @@ python_sources = [
   'franc/evaluation/dataset.py',
   'franc/evaluation/metrics.py',
   'franc/evaluation/evaluation.py',
+  'franc/evaluation/report_generation.py',
 ]
 
 # actually install the python module
