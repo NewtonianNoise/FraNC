@@ -1,10 +1,11 @@
 """Collection of tools for the evaluation and testing of filters"""
 
 from typing import Any
-from collections.abc import Sequence, Generator
+from collections.abc import Sequence
 import os
 from pathlib import Path
 from timeit import timeit
+from copy import deepcopy
 
 import numpy as np
 from numpy.typing import NDArray
@@ -14,6 +15,7 @@ from .dataset import EvaluationDataset
 from .metrics import EvaluationMetric, EvaluationMetricScalar, EvaluationMetricPlottable
 from ..filtering import FilterBase
 from ..common import hash_function_str
+from .report_generation import Report, ReportTable, ReportFigure
 
 NDArrayF = NDArray[np.floating]
 NDArrayU = NDArray[np.uint]
@@ -254,7 +256,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                         "The metrics must be instances of an EvaluationMetric."
                     )
 
-        self.method_configurations = method_configurations
+        self.method_configurations = deepcopy(method_configurations)
         self.dataset = dataset
         self.optimization_metric = optimization_metric
         self.metrics = metrics if metrics else []
@@ -283,7 +285,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             self.directory / "predictions",
             self.directory / "report",
             self.directory / "report" / "plots",
-            self.directory / "report" / "texts",
+            self.directory / "report" / "tex",
         ]
         for path in folders:
             try:
@@ -362,55 +364,99 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         print(filter_technique.filter_name, f"({status})")
         return pred, result_filename
 
-    def run(self, select: int | None = None) -> Generator[
-        tuple[Sequence[NDArrayF], EvaluationMetricScalar, Sequence[EvaluationMetric]],
-        None,
-        None,
-    ]:
+    def run(self, compile_report: bool = False) -> list[tuple[type[FilterBase], list]]:
         """Execute the evaluation run
 
         :param select: select one specific run from the list yielded by get_all_configurations
 
         :return: generates (Prediction, optimization_metric, other_metrics) objects
         """
-        # generate list of to-be-executed evaluations
-        configurations = self.get_all_configurations()
-        if select is not None:
-            configurations = [configurations[select]]
-
         if len(self.dataset.target_evaluation) != 1 and not self.multi_sequence_support:
             raise NotImplementedError(
                 "At least one filter method does not support multi sequence input, but the dataset contains multiple sequences."
             )
 
         # run evaluations
-        for filter_technique, conf in configurations:
-            pred, result_filename = self.get_prediction(filter_technique, conf)
+        results: list[tuple[type[FilterBase], list]] = []
+        for filter_technique, filt_configs in self.method_configurations:
+            results.append((filter_technique, []))
+            for conf_idx, conf in enumerate(filt_configs):
 
-            optimization_metric_result = self.optimization_metric.apply(
-                pred, self.dataset
-            )
-            print("\ttarget: ", optimization_metric_result.text)
+                pred, result_filename = self.get_prediction(filter_technique, conf)
 
-            metric_results = [
-                metric.apply(pred, self.dataset) for metric in self.metrics
-            ]
+                optimization_metric_result = self.optimization_metric.apply(
+                    pred, self.dataset
+                )
+                print("\ttarget: ", optimization_metric_result.text)
 
-            for metric in metric_results:
-                if isinstance(metric, EvaluationMetricPlottable):
-                    plot_filename = (
-                        metric.name
-                        + "_"
-                        + result_filename
-                        + "_"
-                        + metric.method_hash_str
-                        + ".pdf"
+                metric_results = [
+                    metric.apply(pred, self.dataset) for metric in self.metrics
+                ]
+
+                for metric in metric_results:
+                    if isinstance(metric, EvaluationMetricPlottable):
+                        save_path = (
+                            self.directory
+                            / "report"
+                            / "plots"
+                            / metric.filename(result_filename)
+                        )
+                        metric.save_plot(save_path)
+                    print("\t", metric.text)
+
+                results[-1][1].append(
+                    (
+                        conf,
+                        pred,
+                        optimization_metric_result,
+                        metric_results,
                     )
-                    save_path = self.directory / "report" / "plots" / plot_filename
-                    metric.save_plot(save_path)
-                print("\t", metric.text)
+                )
 
-            yield pred, optimization_metric_result, metric_results
+        report = Report()
+        report["Overview"] = {}
+        report["Results overview"] = {}
+        report["Results detailed"] = {}
+
+        for filter_technique, configurations in results:
+            detailed_report_entries = {}
+
+            for conf_idx, (
+                conf,
+                pred,
+                optimization_metric,
+                metrics,
+            ) in enumerate(configurations):
+                entry = []
+                entry.append(optimization_metric.text + "\n\n")
+                entry.append(
+                    ReportTable(
+                        [(str(key), str(value)) for key, value in conf.items()],
+                        caption="Configuration values",
+                    )
+                )
+                for metric in metrics:
+                    if (
+                        isinstance(metric, EvaluationMetricPlottable)
+                        and metric.plot_path is not None
+                    ):
+                        path = Path(metric.plot_path)
+                        path = path.relative_to("report/tex/", walk_up=True)
+                        entry.append(ReportFigure(str(path), caption=metric.text))
+                    else:
+                        entry.append(metric.text + "\n\n")
+                detailed_report_entries[f"Configuration {conf_idx+1}"] = entry
+
+            report["Results detailed"][
+                filter_technique.filter_name
+            ] = detailed_report_entries
+
+        if compile_report:
+            report.compile(self.directory / "report" / "tex" / "report")
+        else:
+            report.save(self.directory / "report" / "tex" / "report")
+
+        return results
 
 
 def residual_power_ratio(
