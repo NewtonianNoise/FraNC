@@ -4,12 +4,13 @@
 ![Linting status](https://github.com/NewtonianNoise/franc/actions/workflows/pylint.yml/badge.svg)
 ![Static type check status](https://github.com/NewtonianNoise/franc/actions/workflows/mypy.yml/badge.svg)
 
-Python implementations of different static and adaptive filtering techniques for the prediction of a correlated signal component from witness signals.
-The main goal is to provide a unified interface for the different filtering techniques.
+A framework to develop and evaluate noise cancellation techniques.
+Includes python implementations of different static and adaptive filtering techniques.
+The techniques for the prediction of a correlated signal component from witness signals provide a unified interface.
 
 [Documentation](https://franc.readthedocs.io/en/latest/)
 
-## Features
+## Filtering methods
 
 Static:
 
