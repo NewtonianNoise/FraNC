@@ -1,10 +1,54 @@
 """Common function for all submodules"""
 
-import hashlib
 from collections.abc import Sequence
+import hashlib
+import platform
+import subprocess
 import struct
 from base64 import b64encode
+import warnings
+
 import numpy as np
+
+
+#########################
+# General section
+def get_platform_info():
+    """Get a string that describes the operating system and CPU model."""
+    os = platform.system()
+
+    cpu = "-"
+    try:
+        if os == "Linux":
+            cpu = subprocess.check_output("cat /proc/cpuinfo", shell=True).decode()
+            cpu = filter(lambda i: "model name" in i, cpu.split("\n"))
+            cpu = next(cpu).split(":")[1].strip()
+        elif os == "Darwin":
+            cpu = (
+                subprocess.check_output(
+                    "sysctl -n machdep.cpu.brand_string", shell=True
+                )
+                .decode()
+                .strip()
+            )
+            cpu += (
+                " "
+                + subprocess.check_output(
+                    "sysctl -n machdep.cpu.core_count", shell=True
+                )
+                .decode()
+                .strip()
+                + " Cores"
+            )
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        cpu = "-"
+        warnings.warn(f"Could not get platform information ({repr(e)})")
+
+    return os + ", " + cpu
+
+
+#########################
+# Hashing
 
 
 def bytes2int(data: bytes) -> int:

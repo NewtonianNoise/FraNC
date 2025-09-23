@@ -7,7 +7,7 @@ import struct
 import numpy as np
 from numpy.typing import NDArray
 
-from ..common import hash_function, hash_object_list, bytes2int
+from ..common import hash_function, hash_object_list, bytes2int, bytes2str
 
 NDArrayF = NDArray[np.floating]
 
@@ -119,6 +119,21 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
                     ), f"Witness channel {idx_channel} in sequence {idx_sequence} has {len(wi)} length, but {input_name} has {len(t)}!"
         return witness, target, signal
 
+    @property
+    def channel_count(self) -> int:
+        """Number of witness channels"""
+        return len(self.witness_conditioning[0])
+
+    def sequence_lengths(self, which: str) -> list[int]:
+        """Returns the length of the sequence identified by which ("cond", "conditioning", "eval", or "evaluation")"""
+        if which in {"conditioning", "cond"}:
+            lengths = [len(sequence) for sequence in self.target_conditioning]
+        elif which in {"evaluation", "eval"}:
+            lengths = [len(sequence) for sequence in self.target_evaluation]
+        else:
+            raise ValueError("which must be either 'conditioning' or 'evaluation'")
+        return lengths
+
     def get_min_sequence_len(self, separate: bool = False) -> int | tuple[int, int]:
         """Get the length of the shortest sequence in the dataset
 
@@ -161,3 +176,17 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
 
     def __hash__(self) -> int:
         return bytes2int(self.hash_bytes())
+
+    def description(self) -> str:
+        """Generate a description of the dataset"""
+        description = self.name + f" (Hash: {bytes2str(self.hash_bytes())})\n"
+        description += f"Sample rate: {self.sample_rate} Hz\n"
+        description += f"{self.channel_count} witness channels\n"
+        for label in ["conditioning", "evaluation"]:
+            min_samples = min(self.sequence_lengths(label))
+            max_samples = max(self.sequence_lengths(label))
+            if max_samples == min_samples:
+                description += f"{len(self.target_conditioning)} {label} sequence(s) ({min(self.sequence_lengths('cond'))} samples each)\n"
+            else:
+                description += f"{len(self.target_conditioning)} {label} sequence(s) (min samples: {min_samples}, max samples: {max_samples})\n"
+        return description

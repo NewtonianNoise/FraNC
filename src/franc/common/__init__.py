@@ -1,6 +1,7 @@
 """Common function for all submodules"""
 
 from .common import (
+    get_platform_info,
     hash_function,
     hash_function_int,
     hash_function_str,
@@ -11,6 +12,7 @@ from .common import (
 )
 
 __all__ = [
+    "get_platform_info",
     "hash_function",
     "hash_function_int",
     "hash_function_str",
