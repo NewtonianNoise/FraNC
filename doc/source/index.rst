@@ -1,4 +1,4 @@
-``saftig`` Package
+``FraNC`` Package
 ===================
 
 .. toctree::

@@ -32,9 +32,9 @@ class TestDataGenerator:
     :param sample_rate: The outputs are referenced
                 to an ASD of 1/sqrt(Hz) if a sample rate is provided
 
-    >>> import saftig as sg
+    >>> import franc as fnc
     >>> # create data with two witness sensors with relative noise amplitudes of 0.1
-    >>> tdg = sg.evaluation.TestDataGenerator(witness_noise_level=[0.1, 0.1])
+    >>> tdg = fnc.evaluation.TestDataGenerator(witness_noise_level=[0.1, 0.1])
     >>> # generate a dataset with 1000 samples
     >>> witness, target = tdg.generate(1000)
     >>> witness.shape, target.shape
@@ -129,8 +129,8 @@ class TestDataGenerator:
 
         Example:
         >>> # generate two sequences of 100 samples each of conditioning data and one 100 sample sequence of evaluation data
-        >>> import saftig as sg
-        >>> ds = sg.evaluation.TestDataGenerator().dataset((100, 100), (100,))
+        >>> import franc as fnc
+        >>> ds = fnc.evaluation.TestDataGenerator().dataset((100, 100), (100,))
         """
         # ensure the input parameters are 1D arrays of unsigned integers
         n_condition = np.array(n_condition, dtype=np.uint)

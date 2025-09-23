@@ -57,8 +57,8 @@ jobs:
 
       - name: Try installing and importing the package
         run: |
-          pip install dist/saftig-*.tar.gz
-          python -c "import saftig"
+          pip install dist/franc-*.tar.gz
+          python -c "import franc"
 
   pypi-publish:
     runs-on: ubuntu-latest
@@ -71,7 +71,7 @@ jobs:
 
     environment:
       name: pypi
-      url: https://pypi.org/project/saftig/
+      url: https://pypi.org/project/franc/
 
     steps:
       - name: Retrieve release distributions

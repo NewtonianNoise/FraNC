@@ -1,4 +1,4 @@
 # define a project with c and cpp support
-project('saftig', 'c', 'cpp')
+project('franc', 'c', 'cpp')
 
 subdir('src')

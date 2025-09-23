@@ -2,7 +2,7 @@
 
 from warnings import warn
 
-import saftig
+import franc
 from .test_filters import TestFilter
 
 
@@ -19,7 +19,7 @@ class TestSpicypyWienerFilter(TestFilter.TestFilter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.set_target(saftig.external.SpicypyWienerFilter)
+        self.set_target(franc.external.SpicypyWienerFilter)
 
         warn("Running spicypy WF tests. These are quite slow.")
 

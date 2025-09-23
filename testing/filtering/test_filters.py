@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 
-import saftig as sg
+import franc as fnc
 
 # file used to test saving and loading of filters
 TEST_FILE = "testing/filter_serialization_test_file"
@@ -27,7 +27,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
         __test__ = False
 
         # The to-be-tested filter class
-        target_filter: type[sg.filtering.FilterBase]
+        target_filter: type[fnc.filtering.FilterBase]
         # to-be-tested configurations
         default_filter_parameters: list = [{}]
 
@@ -59,7 +59,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
 
         def instantiate_filters(
             self, n_filter=128, idx_target=0, n_channel=1
-        ) -> Iterable[sg.filtering.FilterBase]:
+        ) -> Iterable[fnc.filtering.FilterBase]:
             """instantiate the target filter for all configurations"""
             for parameters in self.default_filter_parameters:
                 yield self.target_filter(n_filter, idx_target, n_channel, **parameters)
@@ -67,7 +67,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
         def test_exception_on_missshaped_input(self):
             """Check that matching exceptions are thrown for obviously wrong input shapes"""
             n_filter = 128
-            witness, target = sg.evaluation.TestDataGenerator(
+            witness, target = fnc.evaluation.TestDataGenerator(
                 0.1, rng_seed=RNG_SEED
             ).generate(int(1e4))
 
@@ -81,7 +81,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
         def test_acceptance_of_minimum_input_length(self):
             """Check that the filter works with the minimum input length of two filter lengths"""
             n_filter = 128
-            witness, target = sg.evaluation.TestDataGenerator(
+            witness, target = fnc.evaluation.TestDataGenerator(
                 0.1, rng_seed=RNG_SEED
             ).generate(n_filter * 2)
 
@@ -94,7 +94,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
         def test_acceptance_of_lists(self):
             """Check that the filter accepts inputs that are not np.ndarray"""
             n_filter = 128
-            witness, target = sg.evaluation.TestDataGenerator(
+            witness, target = fnc.evaluation.TestDataGenerator(
                 0.1, rng_seed=RNG_SEED
             ).generate(n_filter * 2)
 
@@ -107,7 +107,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
         def test_output_shapes(self):
             """Check output shapes"""
             n_filter = 128
-            witness, target = sg.evaluation.TestDataGenerator(
+            witness, target = fnc.evaluation.TestDataGenerator(
                 0.1, rng_seed=RNG_SEED
             ).generate(int(1e4))
 
@@ -129,7 +129,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
             if not self.target_filter.supports_multi_sequence:
                 return
             n_filter = 128
-            witness, target = sg.evaluation.TestDataGenerator(
+            witness, target = fnc.evaluation.TestDataGenerator(
                 0.1, rng_seed=RNG_SEED
             ).generate_multiple([int(1e4), int(2e4)])
 
@@ -151,7 +151,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
         def test_apply_on_unconditioned_filter(self):
             """Check that calling apply() on an unconditioned filter either works or throws an RuntimeError"""
             n_filter = 128
-            witness, target = sg.evaluation.TestDataGenerator(
+            witness, target = fnc.evaluation.TestDataGenerator(
                 0.1, rng_seed=RNG_SEED
             ).generate(int(1e4))
 
@@ -165,7 +165,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
             """Check that the filter reaches a WF-Like performance on a simple static test case"""
             for noise_level, acceptable_residual in self.expected_performance.items():
                 n_filter = 32
-                witness, target = sg.evaluation.TestDataGenerator(
+                witness, target = fnc.evaluation.TestDataGenerator(
                     [noise_level] * 2, rng_seed=RNG_SEED
                 ).generate(int(2e4))
 
@@ -178,7 +178,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                             filt.condition(witness, target)
                             prediction = filt.apply(witness, target)
 
-                        residual = sg.evaluation.rms((target - prediction)[4000:])
+                        residual = fnc.evaluation.rms((target - prediction)[4000:])
 
                         self.assertGreater(residual, acceptable_residual[0])
                         self.assertLess(residual, acceptable_residual[1])
@@ -200,7 +200,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
             """
             # generate test data
             n_filter = 32
-            witness, target = sg.evaluation.TestDataGenerator(
+            witness, target = fnc.evaluation.TestDataGenerator(
                 [0.1] * 2, rng_seed=RNG_SEED
             ).generate(int(2e4))
 

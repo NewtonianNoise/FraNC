@@ -7,10 +7,10 @@ from collections.abc import Sequence
 import numpy as np
 import matplotlib.pyplot as plt
 
-import saftig as sg
+import franc as fnc
 
 N_TEST_DATASET = 1000
-test_dataset = sg.evaluation.TestDataGenerator(witness_noise_level=[1] * 3).dataset(
+test_dataset = fnc.evaluation.TestDataGenerator(witness_noise_level=[1] * 3).dataset(
     [N_TEST_DATASET], [N_TEST_DATASET]
 )
 test_prediction = [
@@ -26,12 +26,12 @@ class TestEvaluationMetric:  # pylint: disable=too-few-public-methods
 
         __test__ = False
         expected_results: list | None = None
-        tested_metric: type[sg.evaluation.EvaluationMetric]
+        tested_metric: type[fnc.evaluation.EvaluationMetric]
         parameter_sets: Sequence[dict]
 
         def set_tested_metric(
             self,
-            tested_metric: Type[sg.evaluation.EvaluationMetric],
+            tested_metric: Type[fnc.evaluation.EvaluationMetric],
             parameter_sets: Sequence[dict],
         ):
             """Must be called by child __init__ to set target and parameter sets"""
@@ -40,7 +40,7 @@ class TestEvaluationMetric:  # pylint: disable=too-few-public-methods
 
         def instantiate_filters(
             self,
-        ) -> Generator[sg.evaluation.EvaluationMetric, None, None]:
+        ) -> Generator[fnc.evaluation.EvaluationMetric, None, None]:
             """instantiate the target filter for all configurations"""
             for parameters in self.parameter_sets:
                 yield self.tested_metric(**parameters)
@@ -61,7 +61,7 @@ class TestEvaluationMetric:  # pylint: disable=too-few-public-methods
                     self.assertAlmostEqual(metric.result, self.expected_results[idx])
 
                 if issubclass(
-                    self.tested_metric, sg.evaluation.EvaluationMetricPlottable
+                    self.tested_metric, fnc.evaluation.EvaluationMetricPlottable
                 ):
                     fig, ax = plt.subplots()
                     metric.plot(ax)
@@ -77,7 +77,7 @@ class TestRMSMetric(TestEvaluationMetric.TestEvaluationMetric):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.set_tested_metric(sg.evaluation.RMSMetric, [{}])
+        self.set_tested_metric(fnc.evaluation.RMSMetric, [{}])
 
 
 class TestMSEMetric(TestEvaluationMetric.TestEvaluationMetric):
@@ -89,7 +89,7 @@ class TestMSEMetric(TestEvaluationMetric.TestEvaluationMetric):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.set_tested_metric(sg.evaluation.MSEMetric, [{}])
+        self.set_tested_metric(fnc.evaluation.MSEMetric, [{}])
 
 
 class TestBandwidthPowerMetric(TestEvaluationMetric.TestEvaluationMetric):
@@ -102,7 +102,7 @@ class TestBandwidthPowerMetric(TestEvaluationMetric.TestEvaluationMetric):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.set_tested_metric(
-            sg.evaluation.BandwidthPowerMetric,
+            fnc.evaluation.BandwidthPowerMetric,
             [
                 {"f_start": 0.1, "f_stop": 0.2, "n_fft": 15},
                 {"f_start": 0.1, "f_stop": 0.2, "n_fft": 16, "window": "boxcar"},
@@ -118,7 +118,7 @@ class TestPSDMetric(TestEvaluationMetric.TestEvaluationMetric):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.set_tested_metric(
-            sg.evaluation.PSDMetric,
+            fnc.evaluation.PSDMetric,
             [
                 {"n_fft": 15},
                 {"n_fft": 16, "logx": False, "logy": False, "window": "boxcar"},

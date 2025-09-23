@@ -3,7 +3,7 @@ build-backend = "mesonpy"
 requires = ["meson-python", "ninja", "numpy >= 2.0.0"]
 
 [project]
-name = "saftig"
+name = "franc"
 version = "0.2.0"
 description = "Implementations of different static and adaptive filtering techniques for the prediction of a correlated signal component from witness signals."
 readme = "README.md"
@@ -46,8 +46,8 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/timbk/saftig"
-Documentation = "https://saftig.readthedocs.io/en/latest/"
+Repository = "https://github.com/NewtonianNoise/franc"
+Documentation = "https://franc.readthedocs.io/en/latest/"
 
 [[tool.mypy.overrides]]
 module = ["scipy.*", "psutil.*", "numba.*", "icecream.*", "spicypy.*"]

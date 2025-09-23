@@ -2,7 +2,7 @@
 
 import numpy as np
 
-import saftig as sg
+import franc as fnc
 
 from .test_filters import TestFilter
 
@@ -22,11 +22,11 @@ class TestLMSFilter(TestFilter.TestFilter):
             {"normalized": True, "coefficient_clipping": 2},
             {"normalized": False, "step_scale": 0.001},
         ]
-        self.set_target(sg.filtering.LMSFilter, test_configurations)
+        self.set_target(fnc.filtering.LMSFilter, test_configurations)
 
     def test_update_state_setting(self):
         """check that the filter reaches a WF-Like performance on a simple static test case"""
-        witness, target = sg.evaluation.TestDataGenerator(
+        witness, target = fnc.evaluation.TestDataGenerator(
             [0.1] * 2, rng_seed=RNG_SEED
         ).generate(int(2e4))
 

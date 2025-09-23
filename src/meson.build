@@ -3,81 +3,81 @@ py = import('python').find_installation(pure: false)
 
 
 ########################################
-# saftig
+# franc
 python_sources = [
-  'saftig/__init__.py',
+  'franc/__init__.py',
 ]
 
 # actually install the python module
 py.install_sources(
   python_sources,
   pure: false,
-  subdir: 'saftig'
+  subdir: 'franc'
 )
 
 
 ########################################
-# saftig.evaluation
+# franc.evaluation
 python_sources = [
-  'saftig/evaluation/__init__.py',
-  'saftig/evaluation/common.py',
-  'saftig/evaluation/dataset.py',
-  'saftig/evaluation/metrics.py',
-  'saftig/evaluation/evaluation.py',
+  'franc/evaluation/__init__.py',
+  'franc/evaluation/common.py',
+  'franc/evaluation/dataset.py',
+  'franc/evaluation/metrics.py',
+  'franc/evaluation/evaluation.py',
 ]
 
 # actually install the python module
 py.install_sources(
   python_sources,
   pure: false,
-  subdir: 'saftig/evaluation'
+  subdir: 'franc/evaluation'
 )
 
 
 ########################################
-# saftig.signal
+# franc.signal
 
 python_sources = [
-  'saftig/filtering/__init__.py',
-  'saftig/filtering/common.py',
-  'saftig/filtering/wf.py',
-  'saftig/filtering/uwf.py',
-  'saftig/filtering/lms.py',
-  'saftig/filtering/polylms.py',
+  'franc/filtering/__init__.py',
+  'franc/filtering/common.py',
+  'franc/filtering/wf.py',
+  'franc/filtering/uwf.py',
+  'franc/filtering/lms.py',
+  'franc/filtering/polylms.py',
 ]
 
 # actually install the python module
 py.install_sources(
   python_sources,
   pure: false,
-  subdir: 'saftig/filtering'
+  subdir: 'franc/filtering'
 )
 
 
 ########################################
-# saftig.evaluation
+# franc.evaluation
 python_sources_external = [
-  'saftig/external/__init__.py',
-  'saftig/external/spicypy_wf.py',
+  'franc/external/__init__.py',
+  'franc/external/spicypy_wf.py',
 ]
 
-# install the saftig.external module
+# install the franc.external module
 py.install_sources(
   python_sources_external,
   pure: false,
-  subdir: 'saftig/external'
+  subdir: 'franc/external'
 )
 
 ########################################
-# saftig.evaluation
+# franc.evaluation
 python_sources_common = [
-  'saftig/common/__init__.py',
-  'saftig/common/common.py',
+  'franc/common/__init__.py',
+  'franc/common/common.py',
 ]
 
-# install the saftig.external module
+# install the franc.external module
 py.install_sources(
   python_sources_common,
   pure: false,
-  subdir: 'saftig/common'
+  subdir: 'franc/common'
 )
