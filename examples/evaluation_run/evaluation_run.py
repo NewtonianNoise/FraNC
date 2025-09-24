@@ -6,7 +6,7 @@ if __name__ == "__main__":
     # create evaluation dataset
     dataset = fnc.eval.TestDataGenerator(
         [0.1] * n_channel, rng_seed=831011041148397102116105103
-    ).dataset([int(1e5)], [int(1e5)])
+    ).dataset([int(1e5), int(1e5)], [int(1e5), int(1e5)])
     dataset.target_unit = "AU"
 
     # define evaluation run
@@ -23,11 +23,11 @@ if __name__ == "__main__":
         ],
         dataset,
         fnc.eval.RMSMetric(),
-        [fnc.eval.MSEMetric(), fnc.eval.PSDMetric()],
+        [fnc.eval.MSEMetric(), fnc.eval.PSDMetric(), fnc.eval.TimeSeriesMetric()],
     )
 
     # execute evaluation run
-    for entry in eval_run.run(compile_report=True):
-        pass
+    results = eval_run.run()
+    eval_run.generate_report(results, True)
 
     print("done")

@@ -238,8 +238,8 @@ class EvaluationMetricPlottable(EvaluationMetric):
         plt.rcParams["font.family"] = "serif"
 
         fig, ax = plt.subplots(figsize=figsize)
+        ax.grid(True, zorder=-1)
         self.plot(ax)
-        ax.grid(True)
         if tight_layout:
             plt.tight_layout()
         plt.savefig(fname)
@@ -341,9 +341,10 @@ class PSDMetric(EvaluationMetricPlottable):
     The closes bins to f_start and f_stop is chosen as the integration borders.
 
     :param n_fft: Sample count per FFT block used by Welch's method
-    :param window: fft window type
+    :param window: FFT window type
     :param logx: Logarithmic x scale
     :param logy: Logarithmic y scale
+    :param show_target: If True, also show spectrum of the target signal
     """
 
     name = "Power spectral density"
@@ -405,3 +406,51 @@ class PSDMetric(EvaluationMetricPlottable):
             ax.set_xlim(min(freq), max(freq))
         if self.logy:
             ax.set_yscale("log")
+
+
+class TimeSeriesMetric(EvaluationMetricPlottable):
+    """Plots the signal as a time series"""
+
+    name = "Time series"
+
+    @EvaluationMetric.init_wrapper
+    def __init__(
+        self,
+        show_target: bool = True,
+    ):
+        super().__init__(show_target=show_target)
+        self.show_target = show_target
+
+    @property
+    @EvaluationMetric.result_full_wrapper
+    def result_full(self) -> tuple[Sequence[NDArray],]:
+        return (self.residual,)
+
+    def plot(self, ax: Axes):
+        """Plot to the given Axes object"""
+        if self.show_target:
+            y = np.concatenate(self.dataset.target_evaluation)
+            ax.plot(
+                np.arange(len(y)) / self.dataset.sample_rate,
+                y,
+                label="Target",
+                rasterized=True,
+            )
+
+        y = np.concatenate(self.result_full[0])
+        x = np.arange(len(y)) / self.dataset.sample_rate
+        ax.plot(
+            x,
+            y,
+            label="Residual",
+            rasterized=True,
+        )
+
+        x_marker = 0
+        for section in self.result_full[0]:
+            x_marker += len(section)
+            plt.axvline(x_marker, c="k")
+
+        ax.set_xlim(x[0], x[-1])
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel(f"Target/residual signal[{self.dataset.target_unit}]")

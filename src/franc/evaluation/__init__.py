@@ -10,6 +10,7 @@ from .metrics import (
     RMSMetric,
     BandwidthPowerMetric,
     PSDMetric,
+    TimeSeriesMetric,
 )
 from .evaluation import (
     EvaluationRun,
@@ -31,6 +32,7 @@ __all__ = [
     "RMSMetric",
     "BandwidthPowerMetric",
     "PSDMetric",
+    "TimeSeriesMetric",
     "EvaluationRun",
     "TestDataGenerator",
     "residual_power_ratio",
