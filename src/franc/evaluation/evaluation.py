@@ -21,7 +21,7 @@ from .dataset import EvaluationDataset
 from .metrics import EvaluationMetric, EvaluationMetricScalar, EvaluationMetricPlottable
 from ..filtering import FilterBase
 from ..common import hash_function_str, get_platform_info
-from .report_generation import Report, ReportTable, ReportFigure
+from .report_generation import Report, ReportElement, ReportTable, ReportFigure
 
 NDArrayF = NDArray[np.floating]
 NDArrayU = NDArray[np.uint]
@@ -388,12 +388,74 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         """generate a list of strings indicating platform information (cpu, OS, ..)"""
         return [get_platform_info()]
 
-    def run(self, compile_report: bool = False) -> list[tuple[type[FilterBase], list]]:
+    def generate_report(
+        self, results: list[tuple[type[FilterBase], list]], compile_report: bool = False
+    ):
+        """Generate a report for the given results object from run()"""
+        report = Report()
+
+        # generate overview page
+        report["Overview"] = {
+            "General": "Report generated: "
+            + datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
+            "Platform": self.platform_info_report(),
+            "Software versions": self.software_version_report(),
+            "Evaluation dataset": self.dataset.description().replace("\n", "\n\n"),
+        }
+
+        report["Results overview"] = {}
+        report["Results detailed"] = {}
+
+        # generate report entries for every tested configuration
+        for filter_technique, configurations in results:
+            docstring = inspect.getdoc(filter_technique)
+            if docstring is not None:
+                docstring = docstring.split(">>>", maxsplit=1)[0]
+            else:
+                docstring = ""
+            detailed_report_entries: dict[str, list | dict | str | ReportElement] = {
+                "Overview": f"\\begin{{lstlisting}}{docstring}\\end{{lstlisting}}"
+            }
+
+            for conf_idx, (
+                conf,
+                _pred,
+                optimization_metric,
+                metrics,
+            ) in enumerate(configurations):
+                entry: list[ReportElement | str] = []
+                entry.append(
+                    ReportTable(
+                        [(str(key), str(value)) for key, value in conf.items()],
+                        caption="Configuration values",
+                    )
+                )
+                entry.append(optimization_metric.text + "\n\n")
+                for metric in metrics:
+                    if (
+                        isinstance(metric, EvaluationMetricPlottable)
+                        and metric.plot_path is not None
+                    ):
+                        path = Path(metric.plot_path)
+                        path = path.relative_to("report/tex/", walk_up=True)
+                        entry.append(ReportFigure(str(path), caption=metric.text))
+                    else:
+                        entry.append(metric.text + "\n\n")
+                detailed_report_entries[f"Configuration {conf_idx+1}"] = entry
+
+            report["Results detailed"][
+                filter_technique.filter_name
+            ] = detailed_report_entries
+
+        if compile_report:
+            report.compile(self.directory / "report" / "tex" / "report")
+        else:
+            report.save(self.directory / "report" / "tex" / "report")
+
+    def run(self) -> list[tuple[type[FilterBase], list]]:
         """Execute the evaluation run
 
-        :param select: select one specific run from the list yielded by get_all_configurations
-
-        :return: generates (Prediction, optimization_metric, other_metrics) objects
+        :return: list of (Prediction, optimization_metric, other_metrics) objects
         """
         if len(self.dataset.target_evaluation) != 1 and not self.multi_sequence_support:
             raise NotImplementedError(
@@ -404,7 +466,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         results: list[tuple[type[FilterBase], list]] = []
         for filter_technique, filt_configs in self.method_configurations:
             results.append((filter_technique, []))
-            for conf_idx, conf in enumerate(filt_configs):
+            for conf in filt_configs:
 
                 pred, result_filename = self.get_prediction(filter_technique, conf)
 
@@ -436,63 +498,6 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                         metric_results,
                     )
                 )
-
-        report = Report()
-
-        # generate overview page
-        report["Overview"] = {
-            "General": "Report generated: "
-            + datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
-            "Platform": self.platform_info_report(),
-            "Software versions": self.software_version_report(),
-            "Evaluation dataset": self.dataset.description().replace("\n", "\n\n"),
-        }
-
-        report["Results overview"] = {}
-        report["Results detailed"] = {}
-
-        # generate report entries for every tested configuration
-        for filter_technique, configurations in results:
-            docstring = inspect.getdoc(filter_technique).split(">>>")[0]
-            detailed_report_entries = {
-                "Overview": f"\\begin{{lstlisting}}{docstring}\\end{{lstlisting}}"
-            }
-
-            for conf_idx, (
-                conf,
-                pred,
-                optimization_metric,
-                metrics,
-            ) in enumerate(configurations):
-                entry = []
-                entry.append(
-                    ReportTable(
-                        [(str(key), str(value)) for key, value in conf.items()],
-                        caption="Configuration values",
-                    )
-                )
-                entry.append(optimization_metric.text + "\n\n")
-                for metric in metrics:
-                    if (
-                        isinstance(metric, EvaluationMetricPlottable)
-                        and metric.plot_path is not None
-                    ):
-                        path = Path(metric.plot_path)
-                        path = path.relative_to("report/tex/", walk_up=True)
-                        entry.append(ReportFigure(str(path), caption=metric.text))
-                    else:
-                        entry.append(metric.text + "\n\n")
-                detailed_report_entries[f"Configuration {conf_idx+1}"] = entry
-
-            report["Results detailed"][
-                filter_technique.filter_name
-            ] = detailed_report_entries
-
-        if compile_report:
-            report.compile(self.directory / "report" / "tex" / "report")
-        else:
-            report.save(self.directory / "report" / "tex" / "report")
-
         return results
 
 
