@@ -20,7 +20,7 @@ from .common import total_power
 from .dataset import EvaluationDataset
 from .metrics import EvaluationMetric, EvaluationMetricScalar, EvaluationMetricPlottable
 from ..filtering import FilterBase
-from ..common import hash_function_str, get_platform_info
+from ..common import hash_function_str, get_platform_info, bytes2str
 from .report_generation import Report, ReportElement, ReportTable, ReportFigure
 
 NDArrayF = NDArray[np.floating]
@@ -315,7 +315,6 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         for key in keys:
             if not key.startswith("arr_"):
                 raise ValueError("Numpy file does not match expected format.")
-        print(keys)
         return [data[key] for key in keys]
 
     def get_prediction(self, filter_technique: type[FilterBase], conf: dict[str, Any]):
@@ -413,8 +412,20 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 docstring = docstring.split(">>>", maxsplit=1)[0]
             else:
                 docstring = ""
+
+            filter_hash = (
+                filter_technique.__module__
+                + "."
+                + filter_technique.__name__
+                + " (File hash: "
+                + bytes2str(filter_technique.file_hash())
+                + ")"
+            )
             detailed_report_entries: dict[str, list | dict | str | ReportElement] = {
-                "Overview": f"\\begin{{lstlisting}}{docstring}\\end{{lstlisting}}"
+                "Overview": [
+                    filter_hash,
+                    f"\\begin{{lstlisting}}{docstring}\\end{{lstlisting}}",
+                ],
             }
 
             for conf_idx, (

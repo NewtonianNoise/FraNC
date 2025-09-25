@@ -64,8 +64,8 @@ def handle_from_dict(init_func: Callable):
             self.init_parameters = list(args) + [kwargs[key] for key in sorted(kwargs)]
 
             # calculate method hash
-            hashes = self._file_hash()  # pylint: disable=[protected-access]
-            hashes += FilterBase._file_hash()  # pylint: disable=[protected-access]
+            hashes = self.file_hash()  # pylint: disable=[protected-access]
+            hashes += FilterBase.file_hash()  # pylint: disable=[protected-access]
             hashes += hash_object_list(self.init_parameters)
             self.method_hash_value = hash_function(hashes)
 
@@ -347,7 +347,7 @@ class FilterBase(abc.ABC):
         return cls.from_dict(filter_dict)
 
     @classmethod
-    def _file_hash(cls: type[FilterTypeT]) -> bytes:
+    def file_hash(cls: type[FilterTypeT]) -> bytes:
         """Calculates a hash value based on the file in which this method was defined."""
         with open(inspect.getfile(cls), "rb") as f:
             script = f.read()
