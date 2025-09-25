@@ -6,7 +6,7 @@ if __name__ == "__main__":
     # create evaluation dataset
     dataset = fnc.eval.TestDataGenerator(
         [0.1] * n_channel, rng_seed=831011041148397102116105103
-    ).dataset([int(1e5), int(1e5)], [int(1e5), int(1e5)])
+    ).dataset([int(1e5), int(1e5)], [int(1e5), int(2e5)])
     dataset.target_unit = "AU"
 
     # define evaluation run
