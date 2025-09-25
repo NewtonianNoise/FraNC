@@ -34,7 +34,7 @@ else:
 
 def welch_multiple_sequences(
     arrays: Sequence[NDArray], nperseg, *args, **kwargs
-) -> tuple[NDArray, NDArray]:
+) -> tuple[NDArray, NDArray, NDArray, NDArray]:
     """Apply scipy.signal.welch to a sequence of arrays
 
     Additional arguments are passed to the scipy Welch implementation.
@@ -43,9 +43,12 @@ def welch_multiple_sequences(
 
     :param arrays: Sequence of arrays
     :param nperseg: Length of FFT segments
+
+    :return: frequencies, spectrum mean, spectrum min, spectrum max
     """
     norm = 0
     S_rr = np.zeros(int((nperseg + 2) / 2))
+    S_rr_all = []
     skipped = False
     f = None
 
@@ -53,6 +56,7 @@ def welch_multiple_sequences(
         if len(res) >= nperseg:
             f, S_rr_i = welch(res, nperseg=nperseg, *args, **kwargs)
             S_rr += S_rr_i * len(res)
+            S_rr_all.append(S_rr_i)
             norm += len(res)
         else:
             skipped = True
@@ -65,7 +69,7 @@ def welch_multiple_sequences(
         )
 
     S_rr /= norm
-    return f, S_rr
+    return f, S_rr, np.min(S_rr_all, axis=0), np.max(S_rr_all, axis=0)
 
 
 class EvaluationMetric(abc.ABC):
@@ -317,7 +321,7 @@ class BandwidthPowerMetric(EvaluationMetricScalar):
     @property
     @EvaluationMetric.result_full_wrapper
     def result_full(self):
-        f, S_rr = welch_multiple_sequences(
+        f, S_rr, _, _ = welch_multiple_sequences(
             self.residual,
             nperseg=self.n_fft,
             fs=self.dataset.sample_rate,
@@ -383,17 +387,23 @@ class PSDMetric(EvaluationMetricPlottable):
 
     @property
     @EvaluationMetric.result_full_wrapper
-    def result_full(self) -> tuple[NDArray, NDArray]:
-        f, S_rr = self._welch_multiple_sequences(self.residual)
-        return (S_rr, f)
+    def result_full(self) -> tuple[NDArray, NDArray, NDArray, NDArray]:
+        f, S_rr, S_rr_min, S_rr_max = self._welch_multiple_sequences(self.residual)
+        return (S_rr, f, S_rr_min, S_rr_max)
 
     def plot(self, ax: Axes):
         """Plot to the given Axes object"""
         freq = self.result_full[1]
-        ax.plot(freq, self.result, label="Residual")
+        ax.fill_between(
+            freq, self.result_full[2], self.result_full[3], fc="C0", alpha=0.3
+        )
+        ax.plot(freq, self.result, label="Residual", c="C0")
         if self.show_target:
-            f, Stt = self._welch_multiple_sequences(self.dataset.target_evaluation)
-            ax.plot(f, Stt, label="Target")
+            f, Stt, Stt_min, Stt_max = self._welch_multiple_sequences(
+                self.dataset.target_evaluation
+            )
+            ax.fill_between(freq, Stt_min, Stt_max, fc="C1", alpha=0.3)
+            ax.plot(f, Stt, label="Target", c="C1")
             plt.legend()
 
         ax.set_xlabel("Frequency [Hz]")
@@ -454,3 +464,5 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
         ax.set_xlim(x[0], x[-1])
         ax.set_xlabel("Time [s]")
         ax.set_ylabel(f"Target/residual signal[{self.dataset.target_unit}]")
+
+        ax.legend()
