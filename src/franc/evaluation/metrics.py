@@ -267,13 +267,13 @@ class RMSMetric(EvaluationMetricScalar):
 
     @property
     @EvaluationMetric.result_full_wrapper
-    def result_full(self) -> tuple[np.floating | float]:
-        rms = np.sqrt(np.mean(np.square(np.concatenate(self.residual))))  # type: ignore[arg-type]
-        return (rms,)
+    def result_full(self) -> tuple[np.floating | float, str]:
+        rms = np.sqrt(np.mean(np.square(np.concatenate(self.residual))))
+        return (rms, self.dataset.target_unit)
 
-    @staticmethod
-    def result_to_text(result_full: tuple[float | np.floating, ...]) -> str:
-        return f"Residual RMS: {result_full[0]:f}"
+    @classmethod
+    def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
+        return f"Residual RMS: {result_full[0]:f} {result_full[1]}"
 
 
 class MSEMetric(EvaluationMetricScalar):
@@ -283,9 +283,13 @@ class MSEMetric(EvaluationMetricScalar):
 
     @property
     @EvaluationMetric.result_full_wrapper
-    def result_full(self) -> tuple[np.floating | float]:
+    def result_full(self) -> tuple[np.floating | float, str]:
         mse = np.mean(np.square(np.concatenate(self.residual)))
-        return (mse,)
+        return (mse, self.dataset.target_unit)
+
+    @classmethod
+    def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
+        return f"Residual MSE: {result_full[0]:f} ({result_full[1]})²"
 
 
 class BandwidthPowerMetric(EvaluationMetricScalar):
@@ -463,6 +467,6 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
 
         ax.set_xlim(x[0], x[-1])
         ax.set_xlabel("Time [s]")
-        ax.set_ylabel(f"Target/residual signal[{self.dataset.target_unit}]")
+        ax.set_ylabel(f"Target/residual signal [{self.dataset.target_unit}]")
 
         ax.legend()
