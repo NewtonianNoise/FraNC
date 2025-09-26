@@ -15,6 +15,7 @@ import numpy as np
 from numpy.typing import NDArray
 import scipy
 import numba
+import matplotlib.pyplot as plt
 
 from .common import total_power
 from .dataset import EvaluationDataset
@@ -228,6 +229,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         metrics: Sequence[EvaluationMetric] | None = None,
         name: str = "unnamed",
         directory: str = ".",
+        figsize: tuple[float, float] = (10, 4),
     ):
         # check that input data format
         self.multi_sequence_support = (
@@ -268,6 +270,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         self.metrics = metrics if metrics else []
         self.name = name
         self.directory = Path(directory)
+        self.figsize = figsize
 
         self.all_configurations_list: list | None = None
 
@@ -387,6 +390,69 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         """generate a list of strings indicating platform information (cpu, OS, ..)"""
         return [get_platform_info()]
 
+    def generate_overview_plots(
+        self,
+        results: list[tuple[type[FilterBase], list]],
+    ):
+        """Generate overview plots"""
+        report_section = []
+
+        optimization_metric_values = []
+        for idx, (filter_technique, configurations) in enumerate(results):
+            performance_results = [conf[2].result for conf in configurations]
+            optimization_metric_values.append(
+                (filter_technique, min(performance_results), performance_results, idx)
+            )
+        optimization_metric_ranges = list(
+            sorted(optimization_metric_values, key=lambda x: x[1])
+        )
+
+        fig, ax = plt.subplots(figsize=self.figsize)
+        for idx, (filter_technique, _lowest, all_values, _idx) in enumerate(
+            optimization_metric_ranges
+        ):
+            plt.scatter([idx] * len(all_values), all_values)
+        ax.set_xticks(
+            range(len(optimization_metric_ranges)),
+            list(
+                map(
+                    lambda x: x[0].filter_name + f" {x[3]+1}",
+                    optimization_metric_ranges,
+                )
+            ),
+        )
+
+        y_min = min(i[1] for i in optimization_metric_ranges)
+        y_max = max(i[2] for i in optimization_metric_ranges)
+        ax.set_ylim(
+            y_min - (y_max - y_min) * 0.05,
+            y_max + (y_max - y_min) * 0.05,
+        )
+
+        # get an evaluation metric instantiated on the dataset
+        optimization_metric = results[0][1][0][2]
+        ax.set_ylabel(f"{optimization_metric.name} [{optimization_metric.unit}]")
+
+        figure_path = (
+            self.directory / "report" / "plots" / f"comparison_{self.hash_str()}.pdf"
+        )
+        fig.savefig(figure_path)
+        plt.close(fig)
+
+        report_section += [
+            ReportFigure(
+                str(
+                    figure_path.relative_to(
+                        "report/tex/",
+                        walk_up=True,
+                    )
+                ),
+                caption="Optimizaiton metric overview",
+            )
+        ]
+
+        return report_section
+
     def generate_report(
         self, results: list[tuple[type[FilterBase], list]], compile_report: bool = False
     ):
@@ -394,19 +460,22 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         report = Report()
 
         # generate overview page
+        report_generation_timestamp = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
         report["Overview"] = {
-            "General": "Report generated: "
-            + datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
+            "General": [
+                f"Report generated: {report_generation_timestamp}\n",
+                f"EvaluationRun hash: {self.hash_str()}",
+            ],
             "Platform": self.platform_info_report(),
             "Software versions": self.software_version_report(),
             "Evaluation dataset": self.dataset.description().replace("\n", "\n\n"),
         }
 
-        report["Results overview"] = {}
+        report["Results overview"] = self.generate_overview_plots(results)
         report["Results detailed"] = {}
 
         # generate report entries for every tested configuration
-        for filter_technique, configurations in results:
+        for filter_idx, (filter_technique, configurations) in enumerate(results):
             docstring = inspect.getdoc(filter_technique)
             if docstring is not None:
                 docstring = docstring.split(">>>", maxsplit=1)[0]
@@ -455,7 +524,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 detailed_report_entries[f"Configuration {conf_idx+1}"] = entry
 
             report["Results detailed"][
-                filter_technique.filter_name
+                filter_technique.filter_name + f" {filter_idx+1}"
             ] = detailed_report_entries
 
         if compile_report:
@@ -510,6 +579,14 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                     )
                 )
         return results
+
+    def hash_str(self) -> str:
+        """returns a hash over the dataset and filtering configurations as a string"""
+        hash_value = self.dataset.hash_bytes()
+        for filter_technique, configurations in self.method_configurations:
+            for conf in configurations:
+                hash_value += filter_technique(**conf).method_hash
+        return hash_function_str(hash_value)
 
 
 def residual_power_ratio(

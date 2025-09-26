@@ -14,7 +14,11 @@ if __name__ == "__main__":
         [
             (
                 fnc.filt.WienerFilter,
-                [{"n_filter": 16, "idx_target": 0, "n_channel": n_channel}],
+                [
+                    {"n_filter": 16, "idx_target": 0, "n_channel": n_channel},
+                    {"n_filter": 32, "idx_target": 0, "n_channel": n_channel},
+                    {"n_filter": 64, "idx_target": 0, "n_channel": n_channel},
+                ],
             ),
             (
                 fnc.filt.LMSFilter,
