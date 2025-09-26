@@ -84,6 +84,8 @@ class EvaluationMetric(abc.ABC):
     name: str
     method_hash_value: bytes
 
+    unit = "AU"
+
     @staticmethod
     def init_wrapper(func):
         """A decorator for the __init__function
@@ -141,6 +143,8 @@ class EvaluationMetric(abc.ABC):
             ]
 
         new_instance.applied = True
+
+        self.unit = dataset.target_unit
         return new_instance
 
     @property
@@ -210,6 +214,8 @@ class EvaluationMetric(abc.ABC):
 class EvaluationMetricScalar(EvaluationMetric):
     """Parent class for evaluation metrics that yield a scalar value"""
 
+    unit: str
+
     @property
     def result(self) -> float:
         """The raw data of the result"""
@@ -269,7 +275,7 @@ class RMSMetric(EvaluationMetricScalar):
     @EvaluationMetric.result_full_wrapper
     def result_full(self) -> tuple[np.floating | float, str]:
         rms = np.sqrt(np.mean(np.square(np.concatenate(self.residual))))
-        return (rms, self.dataset.target_unit)
+        return (rms, self.unit)
 
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
@@ -281,15 +287,21 @@ class MSEMetric(EvaluationMetricScalar):
 
     name = "Residual MSE"
 
+    def apply(self, *args, **kwargs):
+        new_instance = super().apply(*args, **kwargs)
+
+        new_instance.unit = f"({new_instance.unit})²"
+        return new_instance
+
     @property
     @EvaluationMetric.result_full_wrapper
     def result_full(self) -> tuple[np.floating | float, str]:
         mse = np.mean(np.square(np.concatenate(self.residual)))
-        return (mse, self.dataset.target_unit)
+        return (mse, self.unit)
 
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
-        return f"Residual MSE: {result_full[0]:f} ({result_full[1]})²"
+        return f"Residual MSE: {result_full[0]:f} {result_full[1]}"
 
 
 class BandwidthPowerMetric(EvaluationMetricScalar):
