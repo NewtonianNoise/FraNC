@@ -426,14 +426,12 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         report_sections = []
 
         # identify changed values
-        print(results)
         for filter_method, configurations in results:
             parameter_values: dict[str, Any] = {}
             parameterset_hash = ""
 
             for conf, _, _, _, configuration_hash in configurations:
                 parameterset_hash += configuration_hash
-                print(conf)
                 for parameter, value in conf.items():
                     if parameter not in parameter_values:
                         parameter_values[parameter] = set()

@@ -193,8 +193,10 @@ postbreak=\mbox{{$\hookrightarrow$}\space},
             ["pdflatex", "-halt-on-error", fname.with_suffix(".tex").name],
             cwd=fname.parent,
             check=False,
+            capture_output=True,
         )
         if retval.returncode != 0:
+            print(retval.stdout, "\n\n", retval.stderr)
             raise RuntimeError("PDF generation with pdflatex failed.")
 
         return fname.with_suffix(".pdf")
