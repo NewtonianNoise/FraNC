@@ -20,9 +20,9 @@ import matplotlib.pyplot as plt
 from .common import total_power
 from .dataset import EvaluationDataset
 from .metrics import EvaluationMetric, EvaluationMetricScalar, EvaluationMetricPlottable
-from ..filtering import FilterBase
-from ..common import hash_function_str, get_platform_info, bytes2str
+from .filter_interface import FilterInterface
 from .report_generation import Report, ReportElement, ReportTable, ReportFigure
+from ..common import hash_function_str, get_platform_info, bytes2str
 
 NDArrayF = NDArray[np.floating]
 NDArrayU = NDArray[np.uint]
@@ -161,7 +161,7 @@ class TestDataGenerator:
 
 
 def measure_runtime(
-    filter_classes: Sequence[FilterBase],
+    filter_classes: Sequence[FilterInterface],
     n_samples: int = int(1e4),
     n_channel: int = 1,
     n_filter: int = 128,
@@ -223,7 +223,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
-        method_configurations: Sequence[tuple[type[FilterBase], Sequence]],
+        method_configurations: Sequence[tuple[type[FilterInterface], Sequence]],
         dataset: EvaluationDataset,
         optimization_metric: EvaluationMetricScalar,
         metrics: Sequence[EvaluationMetric] | None = None,
@@ -236,9 +236,9 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             True  # indicates whether all methods support multiple sequences
         )
         for filter_technique, configurations in method_configurations:
-            if not issubclass(filter_technique, FilterBase):
+            if not issubclass(filter_technique, FilterInterface):
                 raise TypeError(
-                    "Only filtering techniques with the FilterBase interface are supported."
+                    "Only filtering techniques with the FilterInterface interface are supported."
                 )
             if len(configurations) < 0:
                 raise TypeError(
@@ -340,7 +340,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
 
     def generate_overview_plots(
         self,
-        results: list[tuple[type[FilterBase], list]],
+        results: list[tuple[type[FilterInterface], list]],
     ):
         """Generate overview plots
         Returns a Report section with the generated plot
@@ -407,7 +407,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         self,
         results: list[
             tuple[
-                type[FilterBase],
+                type[FilterInterface],
                 list[
                     tuple[
                         dict,
@@ -473,7 +473,9 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         return report_sections
 
     def generate_report(
-        self, results: list[tuple[type[FilterBase], list]], compile_report: bool = False
+        self,
+        results: list[tuple[type[FilterInterface], list]],
+        compile_report: bool = False,
     ):
         """Generate a report for the given results object from run()"""
         report = Report()
@@ -556,7 +558,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             report.save(self.directory / "report" / "tex" / "report")
 
     def get_prediction(
-        self, filter_technique: type[FilterBase], conf: dict[str, Any]
+        self, filter_technique: type[FilterInterface], conf: dict[str, Any]
     ) -> tuple[Sequence[NDArray] | NDArray, str, str]:
         """Load the prediction created by applying the given filter and configuration to the dataset"""
         self._create_folder_structure()
@@ -615,7 +617,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             result_filename,
         )
 
-    def run(self) -> list[tuple[type[FilterBase], list]]:
+    def run(self) -> list[tuple[type[FilterInterface], list]]:
         """Execute the evaluation run
 
         :return: list of (Prediction, optimization_metric, other_metrics) objects
@@ -626,7 +628,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             )
 
         # run evaluations
-        results: list[tuple[type[FilterBase], list]] = []
+        results: list[tuple[type[FilterInterface], list]] = []
         for filter_technique, filt_configs in self.method_configurations:
             results.append((filter_technique, []))
             for conf in filt_configs:
