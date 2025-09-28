@@ -6,7 +6,9 @@ import franc
 from .test_filters import TestFilter
 
 
-class TestSpicypyWienerFilter(TestFilter.TestFilter):
+class TestSpicypyWienerFilter(
+    TestFilter.TestFilter[franc.external.SpicypyWienerFilter]
+):
     """Tests for the spicypy WF implementation"""
 
     __test__ = True

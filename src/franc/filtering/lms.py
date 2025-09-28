@@ -66,7 +66,7 @@ class LMSFilter(FilterBase):
     >>> import franc as fnc
     >>> n_filter = 128
     >>> witness, target = fnc.evaluation.TestDataGenerator(0.1).generate(int(1e5))
-    >>> filt = fnc.filtering.LMSFilter(n_filter, 0, 1)
+    >>> filt = fnc.filtering.LMSFilter(1, n_filter, 0)
     >>> filt.condition(witness, target)
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
     >>> residual_rms = fnc.evaluation.rms(target-prediction)
@@ -86,14 +86,14 @@ class LMSFilter(FilterBase):
     @handle_from_dict
     def __init__(
         self,
+        n_channel: int,
         n_filter: int,
         idx_target: int,
-        n_channel: int = 1,
         normalized: bool = True,
         step_scale: float = 0.1,
         coefficient_clipping: float = np.nan,
     ):
-        super().__init__(n_filter, idx_target, n_channel)
+        super().__init__(n_channel, n_filter, idx_target)
         self.normalized = normalized
         self.step_scale = step_scale
         self.coefficient_clipping = coefficient_clipping

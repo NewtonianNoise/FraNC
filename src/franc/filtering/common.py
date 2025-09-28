@@ -1,4 +1,4 @@
-"""Shared functionality for all other modules"""
+"""Shared functionality for all filtering techniques"""
 
 from typing import TypeVar, Any, overload
 from collections.abc import Sequence, Callable
@@ -98,12 +98,10 @@ class FilterBase(abc.ABC):
     supports_multi_sequence = True
     filter_name = "FilterBase"  # must be implemented in children
 
-    def __init__(
-        self, n_filter: int, idx_target: int, n_channel: int = 1, _from_dict=None
-    ):
+    def __init__(self, n_channel: int, n_filter: int, idx_target: int, _from_dict=None):
         del _from_dict  # make as ignored, it is used by the handle_from_dict decorator
-        self.n_filter = n_filter
         self.n_channel = n_channel
+        self.n_filter = n_filter
         self.idx_target = idx_target
 
         assert self.n_filter > 0, "n_filter must be a positive integer"
@@ -293,7 +291,9 @@ class FilterBase(abc.ABC):
                 f'Loading a {clean_dict["filter_name"]} as {cls.filter_name} is not possible.'  # pylint: disable=no-member
             )
 
-        return cls(1, 0, _from_dict=clean_dict)
+        # passing the _from_dict value should make all other values be relevant
+        # They are set to the incompatible None type to potentially fail early in case of an error
+        return cls(None, None, None, _from_dict=clean_dict)  # type: ignore[arg-type]
 
     @classmethod
     def make_filename(cls: type[FilterTypeT], filename: str | Path):
@@ -322,7 +322,7 @@ class FilterBase(abc.ABC):
             for k, v in serialization_data.items():
                 if type(v) not in {str, int, float, np.ndarray, bool}:
                     print(
-                        f">>> Potentially incompatible with numpy.save(pickle=False) {k}: {v}"
+                        f">> Potentially incompatible with numpy.save(pickle=False) {k}: {v}"
                     )
 
         # pickles are disable for security reasons

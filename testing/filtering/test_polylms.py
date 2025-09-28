@@ -7,7 +7,7 @@ from .test_lms import TestLMSFilter
 
 
 class TestPolynomialLMSFilter(TestLMSFilter):
-    """tests for the polynomial vaiant of a LeastMeanSquares filter implementation"""
+    """tests for the polynomial variant of a LeastMeanSquares filter implementation"""
 
     __test__ = True
 

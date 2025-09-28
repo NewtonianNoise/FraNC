@@ -1,7 +1,7 @@
 """Parent class to test filter implementations"""
 
 import unittest
-from typing import Iterable
+from typing import Iterable, TypeVar, Generic
 import warnings
 
 import numpy as np
@@ -13,13 +13,15 @@ TEST_FILE = "testing/filter_serialization_test_file"
 
 RNG_SEED = 113510
 
+T = TypeVar("T", bound=fnc.filtering.FilterBase)
+
 
 class TestFilter:  # pylint: disable=too-few-public-methods
     """this wrapper class prevents automatic test detections
     from finding the parent class and attempting to run it
     """
 
-    class TestFilter(unittest.TestCase):
+    class TestFilter(unittest.TestCase, Generic[T]):
         """Parent class for all filter testing
         Contains common test cases and testing tools
         """
@@ -27,7 +29,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
         __test__ = False
 
         # The to-be-tested filter class
-        target_filter: type[fnc.filtering.FilterBase]
+        target_filter: type[T]
         # to-be-tested configurations
         default_filter_parameters: list = [{}]
 
@@ -42,7 +44,9 @@ class TestFilter:  # pylint: disable=too-few-public-methods
             super().__init__(*args, **kwargs)
             self.__test__ = False
 
-        def set_target(self, target_filter, default_filter_parameters=None) -> None:
+        def set_target(
+            self, target_filter: type[T], default_filter_parameters=None
+        ) -> None:
             """set the target filter and configurations
             This is required to run the common tests
 
@@ -58,11 +62,16 @@ class TestFilter:  # pylint: disable=too-few-public-methods
             assert isinstance(self.default_filter_parameters, list)
 
         def instantiate_filters(
-            self, n_filter=128, idx_target=0, n_channel=1
-        ) -> Iterable[fnc.filtering.FilterBase]:
+            self, n_channel=1, n_filter=128, idx_target=0
+        ) -> Iterable[T]:
             """instantiate the target filter for all configurations"""
             for parameters in self.default_filter_parameters:
-                yield self.target_filter(n_filter, idx_target, n_channel, **parameters)
+                yield self.target_filter(
+                    n_channel=n_channel,
+                    n_filter=n_filter,
+                    idx_target=idx_target,
+                    **parameters,
+                )
 
         def test_exception_on_missshaped_input(self):
             """Check that matching exceptions are thrown for obviously wrong input shapes"""
@@ -71,7 +80,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                 0.1, rng_seed=RNG_SEED
             ).generate(int(1e4))
 
-            for filt in self.instantiate_filters(n_filter):
+            for filt in self.instantiate_filters(n_filter=n_filter):
                 with warnings.catch_warnings():  # warnings are expected here
                     warnings.simplefilter("ignore")
                     filt.condition(witness, target)
@@ -85,7 +94,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                 0.1, rng_seed=RNG_SEED
             ).generate(n_filter * 2)
 
-            for filt in self.instantiate_filters(n_filter):
+            for filt in self.instantiate_filters(n_filter=n_filter):
                 with warnings.catch_warnings():  # warnings are expected here
                     warnings.simplefilter("ignore")
                     filt.condition(witness, target)
@@ -98,7 +107,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                 0.1, rng_seed=RNG_SEED
             ).generate(n_filter * 2)
 
-            for filt in self.instantiate_filters(n_filter):
+            for filt in self.instantiate_filters(n_filter=n_filter):
                 with warnings.catch_warnings():  # warnings are expected here
                     warnings.simplefilter("ignore")
                     filt.condition(witness.tolist(), target.tolist())
@@ -111,7 +120,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                 0.1, rng_seed=RNG_SEED
             ).generate(int(1e4))
 
-            for filt in self.instantiate_filters(n_filter):
+            for filt in self.instantiate_filters(n_filter=n_filter):
                 with warnings.catch_warnings():  # warnings are expected here
                     warnings.simplefilter("ignore")
                     filt.condition(witness, target)
@@ -133,7 +142,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                 0.1, rng_seed=RNG_SEED
             ).generate_multiple([int(1e4), int(2e4)])
 
-            for filt in self.instantiate_filters(n_filter):
+            for filt in self.instantiate_filters(n_filter=n_filter):
                 with warnings.catch_warnings():  # warnings are expected here
                     warnings.simplefilter("ignore")
                     filt.condition_multi_sequence(witness, target)
@@ -155,7 +164,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                 0.1, rng_seed=RNG_SEED
             ).generate(int(1e4))
 
-            for filt in self.instantiate_filters(n_filter):
+            for filt in self.instantiate_filters(n_filter=n_filter):
                 try:
                     filt.apply(witness, target)
                 except RuntimeError:
@@ -171,7 +180,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
 
                 for idx_target in [0, int(n_filter / 2), n_filter - 1]:
                     for filt in self.instantiate_filters(
-                        n_filter, n_channel=2, idx_target=idx_target
+                        n_channel=2, n_filter=n_filter, idx_target=idx_target
                     ):
                         with warnings.catch_warnings():  # warnings are expected here
                             warnings.simplefilter("ignore")
@@ -188,7 +197,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
             if self.target_filter.supports_saving_loading():
                 self.assertRaises(ValueError, self.target_filter.from_dict, {})
 
-                ref_dict = self.target_filter(10, 0, 1).as_dict()
+                ref_dict = self.target_filter(1, 10, 0).as_dict()
                 ref_dict["filter_name"] = "not_a_filter_name"
                 self.assertRaises(ValueError, self.target_filter.from_dict, ref_dict)
             else:
@@ -204,7 +213,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                 [0.1] * 2, rng_seed=RNG_SEED
             ).generate(int(2e4))
 
-            for filt in self.instantiate_filters(n_filter, n_channel=2):
+            for filt in self.instantiate_filters(n_channel=2, n_filter=n_filter):
 
                 if filt.supports_saving_loading():
                     filt.condition(witness, target)
@@ -231,7 +240,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
         def test_hashing(self):
             """Check that hashing works for the filter instances"""
             old_hash = None
-            for filt in self.instantiate_filters(10, n_channel=2):
+            for filt in self.instantiate_filters(n_channel=2, n_filter=10):
                 new_hash = filt.method_hash
 
                 self.assertIsInstance(new_hash, bytes)

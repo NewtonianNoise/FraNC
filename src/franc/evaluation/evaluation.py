@@ -163,19 +163,19 @@ class TestDataGenerator:
 def measure_runtime(
     filter_classes: Sequence[FilterBase],
     n_samples: int = int(1e4),
+    n_channel: int = 1,
     n_filter: int = 128,
     idx_target: int = 0,
-    n_channel: int = 1,
-    additional_filter_settings: Sequence[dict] | None = None,
+    additional_filter_settings: Sequence[dict[str, Any]] | None = None,
     repititions: int = 1,
 ) -> tuple[Sequence, Sequence]:
     """Measure the runtime of filers for a specific scenario
     Be aware that this gives no feedback upon how much multithreading is used!
 
     :param n_samples: Length of the test data
+    :param n_channel: Number of witness sensor channels
     :param n_filter: Length of the FIR filters / input block size
     :param idx_target: Position of the prediction
-    :param n_channel: Number of witness sensor channels
     :param additional_filter_settings: optional settings passed to the filters
     :param repititions: how manu repititions to perform during the timing measurement
 
@@ -194,7 +194,7 @@ def measure_runtime(
 
     def time_filter(filter_class, args):
         """wrapper function to make closures work correctly"""
-        filt = filter_class(n_filter, idx_target, n_channel, **args)
+        filt = filter_class(n_channel, n_filter, idx_target, **args)
         t_cond = timeit(lambda: filt.condition(witness, target), number=repititions)
         t_pred = timeit(lambda: filt.apply(witness, target), number=repititions)
         return t_cond / repititions, t_pred / repititions

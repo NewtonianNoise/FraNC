@@ -114,23 +114,24 @@ filter_configuration_strings = filter_configs_to_str(FILTER_CONFIGURATIONS)
 
 def run_profiling(config, n_samples, n_filter, n_channel, idx_target=0):
     """execute a profiling run for specific configuration for a list of filter configurations
-    to unwrap config list and replace irrelevant restuls with nans
+    to unwrap config list and replace irrelevant results with NaNs
 
     :param config: filter configurations as a list of (filter_instance, additional_filter_params, clear_conditioning_runtime)
                     setting clear_conditioning_runtime to True will set the conditioning runtime to np.nan
     :params n_samples, n_filter, n_channel, idx_target: passed on to franc.measure_runtime()
     """
-    filters = map(lambda x: x[0], config)
-    additional_settings = map(lambda x: x[1], config)
+    filters = list(map(lambda x: x[0], config))
+    additional_settings = list(map(lambda x: x[1], config))
     skip_conditioning = list(map(lambda x: x[2], config))
 
     results = fnc.evaluation.measure_runtime(
         filters,
-        n_samples,
-        n_filter=n_filter,
+        n_samples=n_samples,
         n_channel=n_channel,
-        additional_filter_settings=additional_settings,
+        n_filter=n_filter,
         idx_target=idx_target,
+        additional_filter_settings=additional_settings,
+        repititions=1,
     )
     results = np.array(results)
     results[0, skip_conditioning] = np.nan
