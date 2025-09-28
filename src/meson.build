@@ -24,6 +24,7 @@ python_sources = [
   'franc/evaluation/dataset.py',
   'franc/evaluation/metrics.py',
   'franc/evaluation/evaluation.py',
+  'franc/evaluation/filter_interface.py',
   'franc/evaluation/report_generation.py',
 ]
 

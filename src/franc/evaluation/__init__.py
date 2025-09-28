@@ -20,6 +20,7 @@ from .evaluation import (
     measure_runtime,
 )
 from .report_generation import ReportElement
+from .filter_interface import FilterInterface, make_2d_array, handle_from_dict
 
 __all__ = [
     "rms",
@@ -39,4 +40,7 @@ __all__ = [
     "residual_amplitude_ratio",
     "measure_runtime",
     "ReportElement",
+    "FilterInterface",
+    "make_2d_array",
+    "handle_from_dict",
 ]
