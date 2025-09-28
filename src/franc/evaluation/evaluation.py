@@ -320,58 +320,6 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 raise ValueError("Numpy file does not match expected format.")
         return [data[key] for key in keys]
 
-    def get_prediction(self, filter_technique: type[FilterBase], conf: dict[str, Any]):
-        """Load the prediction created by applying the given filter and configuration to the dataset"""
-        self._create_folder_structure()
-
-        filt = filter_technique(**conf)
-
-        result_hash = hash_function_str(filt.method_hash + self.dataset.hash_bytes())
-        result_filename = filt.method_filename_part + "_" + result_hash
-        conditioned_filter_path: Path = (
-            self.directory / "conditioned_filters" / filt.make_filename(result_filename)
-        )
-        prediction_path = self.directory / "predictions" / (result_filename + ".npz")
-
-        status = "loaded from file"
-        if prediction_path.exists():
-            pred: Sequence | NDArrayF = self.load_np_array_list(prediction_path)
-        else:
-            status = "calculated from loaded filter"
-            # load conditioned filter or run conditioning
-            if conditioned_filter_path.exists():
-                filt = filter_technique.load(conditioned_filter_path)
-            else:
-                status = "ran conditioning and calculated prediction"
-                if self.multi_sequence_support:
-                    filt.condition_multi_sequence(
-                        self.dataset.witness_conditioning,
-                        self.dataset.target_conditioning,
-                    )
-                else:
-                    filt.condition(
-                        self.dataset.witness_conditioning[0],
-                        self.dataset.target_conditioning[0],
-                    )
-                if filt.supports_saving_loading():
-                    filt.save(conditioned_filter_path)
-
-            # create prediction
-            if self.multi_sequence_support:
-                pred = filt.apply_multi_sequence(
-                    self.dataset.witness_evaluation,
-                    self.dataset.target_evaluation,
-                )
-            else:
-                pred_single = filt.apply(
-                    self.dataset.witness_evaluation[0],
-                    self.dataset.target_evaluation[0],
-                )
-                pred = [pred_single]
-            self.save_np_array_list(pred, prediction_path)
-        print(filter_technique.filter_name, f"({status})")
-        return pred, result_filename
-
     @staticmethod
     def software_version_report() -> list[str]:
         """generate a list of strings indicating the important software versions"""
@@ -394,7 +342,9 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         self,
         results: list[tuple[type[FilterBase], list]],
     ):
-        """Generate overview plots"""
+        """Generate overview plots
+        Returns a Report section with the generated plot
+        """
         report_section = []
 
         optimization_metric_values = []
@@ -453,6 +403,77 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
 
         return report_section
 
+    def generate_parameter_scan_plots(
+        self,
+        results: list[
+            tuple[
+                type[FilterBase],
+                list[
+                    tuple[
+                        dict,
+                        NDArray,
+                        EvaluationMetricScalar,
+                        list[EvaluationMetric],
+                        str,
+                    ]
+                ],
+            ]
+        ],
+    ) -> list[list[ReportFigure]]:
+        """Generate a plot of the optimization_metric values over all varied parameters
+        Returns a report section with the generated plots
+        """
+        report_sections = []
+
+        # identify changed values
+        print(results)
+        for filter_method, configurations in results:
+            parameter_values: dict[str, Any] = {}
+            parameterset_hash = ""
+
+            for conf, _, _, _, configuration_hash in configurations:
+                parameterset_hash += configuration_hash
+                print(conf)
+                for parameter, value in conf.items():
+                    if parameter not in parameter_values:
+                        parameter_values[parameter] = set()
+                    parameter_values[parameter] |= {value}
+            parameterset_hash = hash_function_str(parameterset_hash.encode())
+
+            section = []
+            for parameter, values in parameter_values.items():
+                if len(values) > 1:
+                    fig, ax = plt.subplots(figsize=self.figsize)
+                    ax.scatter(
+                        [conf[0][parameter] for conf in configurations],
+                        [conf[2].result for conf in configurations],
+                    )
+                    ax.set_xlabel(parameter)
+                    ax.set_ylabel(
+                        f"{configurations[0][2].name} {configurations[0][2].unit}"
+                    )
+                    fig.tight_layout()
+
+                    # save and add to report
+                    fname = (
+                        self.directory
+                        / "report"
+                        / "plots"
+                        / f"{filter_method.filter_name}_{parameter}_{hash}.pdf"
+                    )
+                    fig.savefig(fname)
+                    plt.close(fig)
+
+                    section.append(
+                        ReportFigure(
+                            str(fname.relative_to("report/tex/", walk_up=True))
+                        )
+                    )
+
+            report_sections.append(section)
+
+        return report_sections
+
     def generate_report(
         self, results: list[tuple[type[FilterBase], list]], compile_report: bool = False
     ):
@@ -474,6 +495,8 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         report["Results overview"] = self.generate_overview_plots(results)
         report["Results detailed"] = {}
 
+        parameter_scan_sections = self.generate_parameter_scan_plots(results)
+
         # generate report entries for every tested configuration
         for filter_idx, (filter_technique, configurations) in enumerate(results):
             docstring = inspect.getdoc(filter_technique)
@@ -494,7 +517,8 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 "Overview": [
                     filter_hash,
                     f"\\begin{{lstlisting}}{docstring}\\end{{lstlisting}}",
-                ],
+                ]
+                + parameter_scan_sections[filter_idx],
             }
 
             for conf_idx, (
@@ -502,6 +526,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 _pred,
                 optimization_metric,
                 metrics,
+                _hash,
             ) in enumerate(configurations):
                 entry: list[ReportElement | str] = []
                 entry.append(
@@ -532,6 +557,66 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         else:
             report.save(self.directory / "report" / "tex" / "report")
 
+    def get_prediction(
+        self, filter_technique: type[FilterBase], conf: dict[str, Any]
+    ) -> tuple[Sequence[NDArray] | NDArray, str, str]:
+        """Load the prediction created by applying the given filter and configuration to the dataset"""
+        self._create_folder_structure()
+
+        filt = filter_technique(**conf)
+
+        result_hash = hash_function_str(filt.method_hash + self.dataset.hash_bytes())
+        result_filename = filt.method_filename_part + "_" + result_hash
+        conditioned_filter_path: Path = (
+            self.directory / "conditioned_filters" / filt.make_filename(result_filename)
+        )
+        prediction_path = self.directory / "predictions" / (result_filename + ".npz")
+
+        status = "loaded from file"
+        if prediction_path.exists():
+            pred: Sequence[NDArrayF] | NDArrayF = self.load_np_array_list(
+                prediction_path
+            )
+        else:
+            status = "calculated from loaded filter"
+            # load conditioned filter or run conditioning
+            if conditioned_filter_path.exists():
+                filt = filter_technique.load(conditioned_filter_path)
+            else:
+                status = "ran conditioning and calculated prediction"
+                if self.multi_sequence_support:
+                    filt.condition_multi_sequence(
+                        self.dataset.witness_conditioning,
+                        self.dataset.target_conditioning,
+                    )
+                else:
+                    filt.condition(
+                        self.dataset.witness_conditioning[0],
+                        self.dataset.target_conditioning[0],
+                    )
+                if filt.supports_saving_loading():
+                    filt.save(conditioned_filter_path)
+
+            # create prediction
+            if self.multi_sequence_support:
+                pred = filt.apply_multi_sequence(
+                    self.dataset.witness_evaluation,
+                    self.dataset.target_evaluation,
+                )
+            else:
+                pred_single = filt.apply(
+                    self.dataset.witness_evaluation[0],
+                    self.dataset.target_evaluation[0],
+                )
+                pred = [pred_single]
+            self.save_np_array_list(pred, prediction_path)
+        print(filter_technique.filter_name, f"({status})")
+        return (
+            pred,
+            result_hash,
+            result_filename,
+        )
+
     def run(self) -> list[tuple[type[FilterBase], list]]:
         """Execute the evaluation run
 
@@ -548,7 +633,9 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             results.append((filter_technique, []))
             for conf in filt_configs:
 
-                pred, result_filename = self.get_prediction(filter_technique, conf)
+                pred, result_hash, result_filename = self.get_prediction(
+                    filter_technique, conf
+                )
 
                 optimization_metric_result = self.optimization_metric.apply(
                     pred, self.dataset
@@ -576,6 +663,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                         pred,
                         optimization_metric_result,
                         metric_results,
+                        result_hash,
                     )
                 )
         return results
