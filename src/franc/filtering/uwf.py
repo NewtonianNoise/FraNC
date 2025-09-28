@@ -25,7 +25,7 @@ class UpdatingWienerFilter(FilterBase):
     >>> import franc as fnc
     >>> n_filter = 128
     >>> witness, target = fnc.evaluation.TestDataGenerator(0.1).generate(int(1e5))
-    >>> filt = fnc.filtering.UpdatingWienerFilter(n_filter, 0, 1, context_pre=20*n_filter, context_post=20*n_filter)
+    >>> filt = fnc.filtering.UpdatingWienerFilter(1, n_filter, 0, context_pre=20*n_filter, context_post=20*n_filter)
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
     >>> residual_rms = fnc.evaluation.rms(target-prediction)
     >>> residual_rms > 0.05 and residual_rms < 0.15 # the expected RMS in this test scenario is 0.1
@@ -42,13 +42,13 @@ class UpdatingWienerFilter(FilterBase):
     @handle_from_dict
     def __init__(
         self,
+        n_channel: int,
         n_filter: int,
         idx_target: int,
-        n_channel: int = 1,
         context_pre: int = 0,
         context_post: int = 0,
     ):
-        super().__init__(n_filter, idx_target, n_channel)
+        super().__init__(n_channel, n_filter, idx_target)
         self.context_pre = context_pre
         self.context_post = context_post
 

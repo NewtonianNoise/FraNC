@@ -140,7 +140,7 @@ class WienerFilter(FilterBase):
     >>> import franc as fnc
     >>> n_filter = 128
     >>> witness, target = fnc.evaluation.TestDataGenerator(0.1).generate(int(1e5))
-    >>> filt = fnc.filtering.WienerFilter(n_filter, 0, 1)
+    >>> filt = fnc.filtering.WienerFilter(1, n_filter, 0)
     >>> _coefficients, full_rank = filt.condition(witness, target)
     >>> full_rank
     True
@@ -158,11 +158,11 @@ class WienerFilter(FilterBase):
     @handle_from_dict
     def __init__(
         self,
+        n_channel: int,
         n_filter: int,
         idx_target: int,
-        n_channel: int = 1,
     ):
-        super().__init__(n_filter, idx_target, n_channel)
+        super().__init__(n_channel, n_filter, idx_target)
         self.requires_apply_target = False
 
     def condition_multi_sequence(

@@ -96,7 +96,7 @@ class PolynomialLMSFilter(FilterBase):
     >>> import franc as fnc
     >>> n_filter = 128
     >>> witness, target = fnc.evaluation.TestDataGenerator(0.1).generate(int(1e5))
-    >>> filt = fnc.filtering.PolynomialLMSFilter(n_filter, 0, 1, step_scale=0.1, order=2, coefficient_clipping=4)
+    >>> filt = fnc.filtering.PolynomialLMSFilter(1, n_filter, 0, step_scale=0.1, order=2, coefficient_clipping=4)
     >>> filt.condition(witness, target)
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
     >>> residual_rms = fnc.evaluation.rms((target-prediction)[1000:])
@@ -117,15 +117,15 @@ class PolynomialLMSFilter(FilterBase):
     @handle_from_dict
     def __init__(
         self,
+        n_channel: int,
         n_filter: int,
         idx_target: int,
-        n_channel: int = 1,
         normalized: bool = True,
         step_scale: float = 0.5,
         coefficient_clipping: float = np.nan,
         order: int = 1,
     ):
-        super().__init__(n_filter, idx_target, n_channel)
+        super().__init__(n_channel, n_filter, idx_target)
         self.normalized = normalized
         self.step_scale = step_scale
         self.coefficient_clipping = coefficient_clipping

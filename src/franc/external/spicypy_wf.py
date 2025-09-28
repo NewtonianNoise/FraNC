@@ -27,7 +27,7 @@ class SpicypyWienerFilter(FilterBase):
     >>> import franc as fnc
     >>> n_filter = 10
     >>> witness, target = fnc.evaluation.TestDataGenerator(0.1).generate(int(1e3))
-    >>> filt = fnc.external.SpicypyWienerFilter(n_filter, 0, 1)
+    >>> filt = fnc.external.SpicypyWienerFilter(1, n_filter, 0)
     >>> sp_filt = filt.condition(witness, target)
     >>> prediction = filt.apply(witness, target) # apply to training data
 
@@ -39,11 +39,11 @@ class SpicypyWienerFilter(FilterBase):
     @handle_from_dict
     def __init__(
         self,
+        n_channel: int,
         n_filter: int,
         idx_target: int,
-        n_channel: int = 1,
     ):
-        super().__init__(n_filter, idx_target, n_channel)
+        super().__init__(n_channel, n_filter, idx_target)
 
         self.conditioned = False
         self.filter_state: spicypy.signal.WienerFilter | None

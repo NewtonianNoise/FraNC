@@ -1,11 +1,12 @@
 """Tests for TestUpdatingWienerFilter"""
 
 import franc as fnc
+from franc.filtering.uwf import UpdatingWienerFilter
 
 from .test_filters import TestFilter
 
 
-class TestUpdatingWienerFilter(TestFilter.TestFilter):
+class TestUpdatingWienerFilter(TestFilter.TestFilter[UpdatingWienerFilter]):
     """Test cases for the UWF"""
 
     __test__ = True
@@ -22,7 +23,7 @@ class TestUpdatingWienerFilter(TestFilter.TestFilter):
         n_filter = 128
         witness, target = fnc.evaluation.TestDataGenerator([0.1]).generate(int(1e4))
 
-        for filt in self.instantiate_filters(n_filter, n_channel=2):
+        for filt in self.instantiate_filters(n_channel=2, n_filter=n_filter):
             self.assertWarns(RuntimeWarning, filt.condition, witness, target)
 
     def test_non_full_rank_warning(self):
@@ -34,7 +35,7 @@ class TestUpdatingWienerFilter(TestFilter.TestFilter):
         # using two identical input datasets produces non-full-rank autocorrelation matrices
         witness = [witness[0]] * n_channel
 
-        for filt in self.instantiate_filters(n_filter, n_channel=n_channel):
+        for filt in self.instantiate_filters(n_channel=n_channel, n_filter=n_filter):
             self.assertWarns(RuntimeWarning, filt.apply, witness, target)
 
     def test_acceptance_of_minimum_input_length_different_context_length(self):
@@ -43,10 +44,14 @@ class TestUpdatingWienerFilter(TestFilter.TestFilter):
         witness, target = fnc.evaluation.TestDataGenerator([0.1]).generate(n_filter * 2)
 
         for context_len in [0, 10000]:
-            filt = self.target_filter(n_filter, 0, 1, context_pre=context_len)
+            filt = self.target_filter(
+                n_channel=1, n_filter=n_filter, idx_target=0, context_pre=context_len
+            )
             pred = filt.apply(witness, target)
             self.assertEqual(len(pred), len(target))
 
-            filt = self.target_filter(n_filter, 0, 1, context_post=context_len)
+            filt = self.target_filter(
+                n_channel=1, n_filter=n_filter, idx_target=0, context_post=context_len
+            )
             pred = filt.apply(witness, target)
             self.assertEqual(len(pred), len(target))
