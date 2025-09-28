@@ -33,7 +33,7 @@ else:
 
 
 def welch_multiple_sequences(
-    arrays: Sequence[NDArray], nperseg, *args, **kwargs
+    arrays: Sequence[NDArray] | NDArray, nperseg, *args, **kwargs
 ) -> tuple[NDArray, NDArray, NDArray, NDArray]:
     """Apply scipy.signal.welch to a sequence of arrays
 
@@ -77,7 +77,7 @@ class EvaluationMetric(abc.ABC):
 
     # indicates whether data is available
     applied = False
-    prediction: Sequence[NDArray]
+    prediction: Sequence[NDArray] | NDArray
     dataset: EvaluationDataset
     residual: Sequence[NDArray]
     parameters: dict = {}
@@ -115,7 +115,7 @@ class EvaluationMetric(abc.ABC):
     # apply() then returns a new instance of the metric that is configured with the data
     def apply(
         self,
-        prediction: Sequence[NDArray],
+        prediction: Sequence[NDArray] | NDArray,
         dataset: EvaluationDataset,
     ) -> Self:
         """Apply this filter"""
