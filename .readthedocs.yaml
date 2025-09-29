@@ -8,6 +8,11 @@ build:
 python:
   install:
     - requirements: doc/requirements.txt
+    - method: pip
+      path: .
+      extra_requirements:
+        - meson-python
+        - ninja
 
 sphinx:
   configuration: doc/source/conf.py
