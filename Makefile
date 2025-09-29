@@ -28,7 +28,7 @@ mypy:
 	./tooling/run_mypy.sh
 
 doc: doc/source/* doc/*
-	cd doc/ && $(MAKE) html
+	cd doc/ && $(MAKE) doctest && $(MAKE) html
 
 view: doc
 	open doc/build/html/index.html

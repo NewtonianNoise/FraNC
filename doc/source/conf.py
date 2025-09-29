@@ -15,6 +15,7 @@ author = "Tim Kuhlbusch"
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
     "sphinx.ext.mathjax",
     "autoapi.extension",
 ]

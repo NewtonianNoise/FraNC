@@ -28,10 +28,12 @@ def make_2d_array(A: Sequence | Sequence[Sequence] | NDArray) -> NDArray:
 
     :raises: ValueError if the input shape is not compatible
 
-    >>> make_2d_array([1, 2])
+    >>> import franc as fnc
+    >>> fnc.evaluation.make_2d_array([1, 2])
     array([[1, 2]])
 
-    >>> make_2d_array([[1, 2], [3, 4]])
+    >>> import franc as fnc
+    >>> fnc.evaluation.make_2d_array([[1, 2], [3, 4]])
     array([[1, 2],
            [3, 4]])
 
