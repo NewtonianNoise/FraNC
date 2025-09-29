@@ -30,3 +30,4 @@ jobs:
         pip install .[dev]
         pip install .
         make test
+        make -B doc # runs doctests of the documentation

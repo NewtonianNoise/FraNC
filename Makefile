@@ -46,4 +46,4 @@ testpublish:
 	python -m build -s
 	twine upload --repository testpypi dist/*
 
-.PHONY: all, doc, view, test, test_time, linter, pylint, coverage, cweb, lt, mypy, build, clean, testpublish, ie, test_coverage
+.PHONY: all, ie, test, pytest, test_time, test_nojit, test_coverage, coverage, cweb, linter, pylint, lt, mypy, doc, view, clean, testpublish
