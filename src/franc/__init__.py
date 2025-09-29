@@ -7,7 +7,10 @@ from franc import filtering
 from franc import external
 
 eval = evaluation  # pylint: disable=redefined-builtin
+"""shorthand for franc.evaluation"""
+
 filt = filtering
+"""shorthand for franc.filtering"""
 
 __all__ = [
     "eval",

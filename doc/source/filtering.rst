@@ -1,7 +1,5 @@
-Introduction
-*************
-
-This is a python implementations of different static and adaptive filtering techniques for the prediction of a correlated signal component from witness signals. The main goal is to provide a unified interface for the different filtering techniques.
+Filtering techniques
+*********************
 
 Features
 =========
