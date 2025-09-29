@@ -21,13 +21,13 @@ Minimal example
 ================
 
 
-.. code-block:: python
+.. doctest::
 
     >>> import franc as fnc
     >>>
     >>> # generate data
     >>> n_channel = 2
-    >>> witness, target = fnc.eval.TestDataGenerator([0.1]*n_channel).generate(int(1e5))
+    >>> witness, target = fnc.eval.TestDataGenerator([0.1]*n_channel, rng_seed=123).generate(int(1e5))
     >>>
     >>> # instantiate the filter and apply it
     >>> filt = fnc.filt.LMSFilter(n_filter=128, idx_target=0, n_channel=n_channel)
@@ -35,5 +35,9 @@ Minimal example
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
     >>>
     >>> # success
-    >>> fnc.eval.RMS(target-prediction) / fnc.eval.RMS(prediction)
-    0.08221177645361015
+    >>> fnc.eval.rms(target-prediction) / fnc.eval.rms(prediction)
+    0.08159719348131059
+
+
+
+
