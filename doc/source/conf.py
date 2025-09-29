@@ -6,9 +6,12 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import franc
+
 project = "FraNC"
-copyright = "2025, Tim Kuhlbusch"
-author = "Tim Kuhlbusch"
+copyright = "2025, Tim J. Kuhlbusch et al."
+author = "Tim J. Kuhlbusch et al."
+version = franc.__version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
