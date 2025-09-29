@@ -35,8 +35,8 @@ Minimal example
     >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
     >>>
     >>> # success
-    >>> fnc.eval.rms(target-prediction) / fnc.eval.rms(prediction)
-    0.08159719348131059
+    >>> round(fnc.eval.rms(target-prediction) / fnc.eval.rms(prediction), 10)
+    0.0815971935
 
 
 
