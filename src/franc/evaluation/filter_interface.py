@@ -339,8 +339,17 @@ class FilterInterface(abc.ABC):
     @classmethod
     def file_hash(cls: type[FilterTypeT]) -> bytes:
         """Calculates a hash value based on the file in which this method was defined."""
-        with open(inspect.getfile(cls), "rb") as f:
-            script = f.read()
+        try:
+            with open(inspect.getfile(cls), "rb") as f:
+                script = f.read()
+        except TypeError:
+            try:
+                script = inspect.getsource(cls).encode()
+            except TypeError:
+                script = cls.filter_name.encode()
+                warnings.warn(
+                    f"Could not include source code in hash for {cls.filter_name}"
+                )
         return hash_function(script)
 
     @property
