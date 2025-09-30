@@ -169,8 +169,16 @@ class EvaluationMetric(abc.ABC):
     @classmethod
     def _file_hash(cls) -> bytes:
         """Calculates a hash value based on the file in which this method was defined."""
-        with open(inspect.getfile(cls), "rb") as f:
-            script = f.read()
+        try:
+            with open(inspect.getfile(cls), "rb") as f:
+                script = f.read()
+        except TypeError:
+            try:
+                script = inspect.getsource(cls).encode()
+            except TypeError:
+                script = cls.name.encode()
+                warnings.warn(f"Could not include source code in hash for {cls.name}")
+
         return hash_function(script)
 
     @property
