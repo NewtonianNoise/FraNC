@@ -147,7 +147,6 @@ class EvaluationMetric(abc.ABC):
         self.unit = dataset.target_unit
         return new_instance
 
-    @property
     @abc.abstractmethod
     def result_full(self) -> tuple:
         """The raw data of the result"""
@@ -155,18 +154,17 @@ class EvaluationMetric(abc.ABC):
     @property
     def result(self) -> Any:
         """The result of the metric evaluation"""
-        return self.result_full[0]
+        return self.result_full()[0]
 
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
         """String indicating the evaluation result"""
-        del result_full  # mark non-used variable
-        return f"{cls.name}"
+        return f"{cls.name}: {str(result_full[0])}"
 
     @property
     def text(self):
         """The text representation of the evaluation result"""
-        return self.result_to_text(self.result_full)
+        return self.result_to_text(self.result_full())
 
     @classmethod
     def _file_hash(cls) -> bytes:
@@ -219,7 +217,7 @@ class EvaluationMetricScalar(EvaluationMetric):
     @property
     def result(self) -> float:
         """The raw data of the result"""
-        return self.result_full[0]
+        return self.result_full()[0]
 
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
@@ -271,7 +269,6 @@ class RMSMetric(EvaluationMetricScalar):
 
     name = "Residual RMS"
 
-    @property
     @EvaluationMetric.result_full_wrapper
     def result_full(self) -> tuple[np.floating | float, str]:
         rms = np.sqrt(np.mean(np.square(np.concatenate(self.residual))))
@@ -279,7 +276,7 @@ class RMSMetric(EvaluationMetricScalar):
 
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
-        return f"Residual RMS: {result_full[0]:f} {result_full[1]}"
+        return f"{cls.name}: {result_full[0]:f} {result_full[1]}"
 
 
 class MSEMetric(EvaluationMetricScalar):
@@ -293,7 +290,6 @@ class MSEMetric(EvaluationMetricScalar):
         new_instance.unit = f"({new_instance.unit})²"
         return new_instance
 
-    @property
     @EvaluationMetric.result_full_wrapper
     def result_full(self) -> tuple[np.floating | float, str]:
         mse = np.mean(np.square(np.concatenate(self.residual)))
@@ -301,7 +297,7 @@ class MSEMetric(EvaluationMetricScalar):
 
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
-        return f"Residual MSE: {result_full[0]:f} {result_full[1]}"
+        return f"{cls.name}: {result_full[0]:f} {result_full[1]}"
 
 
 class BandwidthPowerMetric(EvaluationMetricScalar):
@@ -334,7 +330,6 @@ class BandwidthPowerMetric(EvaluationMetricScalar):
 
         self.name = f"Residual power ({f_start}-{f_stop} Hz)"
 
-    @property
     @EvaluationMetric.result_full_wrapper
     def result_full(self):
         f, S_rr, _, _ = welch_multiple_sequences(
@@ -401,7 +396,6 @@ class PSDMetric(EvaluationMetricPlottable):
             scaling="density",
         )
 
-    @property
     @EvaluationMetric.result_full_wrapper
     def result_full(self) -> tuple[NDArray, NDArray, NDArray, NDArray]:
         f, S_rr, S_rr_min, S_rr_max = self._welch_multiple_sequences(self.residual)
@@ -409,9 +403,9 @@ class PSDMetric(EvaluationMetricPlottable):
 
     def plot(self, ax: Axes):
         """Plot to the given Axes object"""
-        freq = self.result_full[1]
+        freq = self.result_full()[1]
         ax.fill_between(
-            freq, self.result_full[2], self.result_full[3], fc="C0", alpha=0.3
+            freq, self.result_full()[2], self.result_full()[3], fc="C0", alpha=0.3
         )
         ax.plot(freq, self.result, label="Residual", c="C0")
         if self.show_target:
@@ -447,7 +441,6 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
         super().__init__(show_target=show_target)
         self.show_target = show_target
 
-    @property
     @EvaluationMetric.result_full_wrapper
     def result_full(self) -> tuple[Sequence[NDArray],]:
         return (self.residual,)
@@ -463,7 +456,7 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
                 rasterized=True,
             )
 
-        y = np.concatenate(self.result_full[0])
+        y = np.concatenate(self.result_full()[0])
         x = np.arange(len(y)) / self.dataset.sample_rate
         ax.plot(
             x,
@@ -473,7 +466,7 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
         )
 
         x_marker = 0
-        for section in self.result_full[0]:
+        for section in self.result_full()[0]:
             x_marker += len(section)
             plt.axvline(x_marker, c="k")
 
