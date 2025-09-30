@@ -1,8 +1,10 @@
 Filtering techniques
 *********************
 
-Features
-=========
+This framework provides implementations of some noise prediction techniques.
+
+Built-in filtering techniques
+==============================
 
 **Static:**
 
@@ -20,6 +22,7 @@ Features
 Minimal example
 ================
 
+A minimal example of how the filtering techniques can be used. All techniques follow the same interface concept.
 
 .. doctest::
 
@@ -37,7 +40,3 @@ Minimal example
     >>> # success
     >>> round(fnc.eval.rms(target-prediction) / fnc.eval.rms(prediction), 10)
     0.0815971935
-
-
-
-

@@ -93,7 +93,7 @@ class TestDataGenerator:
     def generate(self, n: int) -> tuple[NDArrayF, NDArrayF]:
         """Generate sequences of samples
 
-        :param N: number of samples
+        :param n: number of samples
 
         :return: witness signal, target signal
         """
@@ -111,7 +111,7 @@ class TestDataGenerator:
     ) -> tuple[Sequence, Sequence]:
         """Generate sequences of samples
 
-        :param N: Tuple with the length of the sequences
+        :param n: Tuple with the length of the sequences
 
         :return: witness signals, target signals
         """
