@@ -120,3 +120,6 @@ testing/filter_serialization_test_file.*.npz
 
 # documentation building
 doc/source/autoapi/
+
+# MS office files
+\~$*.*x

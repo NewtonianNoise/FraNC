@@ -13,4 +13,8 @@ Table of Contents
 .. toctree::
   :maxdepth: 3
 
+  concepts_wording
   filtering
+  evaluating
+  adding_filters
+  adding_metrics

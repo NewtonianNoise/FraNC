@@ -38,6 +38,4 @@ html_theme = "sphinx_rtd_theme"
 html_theme_options = {
     "sidebarwidth": "400px",
 }
-html_sidebars = {
-    "**": ["globaltoc.html", "localtoc.html", "sourcelink.html", "searchbox.html"]
-}
+html_sidebars = {"**": ["globaltoc.html", "sourcelink.html", "searchbox.html"]}

@@ -48,7 +48,7 @@ From repository (editable): `make ie`
 >>> prediction = filt.apply(witness, target) # check on the data used for conditioning
 >>>
 >>> # success
->>> fnc.eval.RMS(target-prediction) / fnc.eval.RMS(prediction)
+>>> fnc.eval.rms(target-prediction) / fnc.eval.rms(prediction)
 0.08221177645361015
 ```
 
