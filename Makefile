@@ -27,8 +27,12 @@ pylint: linter
 mypy:
 	./tooling/run_mypy.sh
 
-doc: doc/source/* doc/*
-	cd doc/ && $(MAKE) doctest && $(MAKE) html
+documentationtest:
+	-rm -r doc/test_outputs/*
+	touch doc/test_outputs/.gitkeep
+	cd doc/ && $(MAKE) doctest
+doc: documentationtest
+	cd doc/ && $(MAKE) html
 
 view: doc
 	open doc/build/html/index.html
@@ -46,4 +50,4 @@ testpublish:
 	python -m build -s
 	twine upload --repository testpypi dist/*
 
-.PHONY: all, ie, test, pytest, test_time, test_nojit, test_coverage, coverage, cweb, linter, pylint, lt, mypy, doc, view, clean, testpublish
+.PHONY: all, ie, test, pytest, test_time, test_nojit, test_coverage, coverage, cweb, linter, pylint, lt, mypy, doc, documentationtest, view, clean, testpublish

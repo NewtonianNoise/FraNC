@@ -14,7 +14,7 @@ Table of Contents
   :maxdepth: 3
 
   concepts_wording
-  filtering
   evaluating
+  filtering
   adding_filters
   adding_metrics

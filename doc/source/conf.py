@@ -37,5 +37,6 @@ html_theme = "sphinx_rtd_theme"
 # html_static_path = ["_static"]
 html_theme_options = {
     "sidebarwidth": "400px",
+    "navigation_depth": 6,
 }
 html_sidebars = {"**": ["globaltoc.html", "sourcelink.html", "searchbox.html"]}

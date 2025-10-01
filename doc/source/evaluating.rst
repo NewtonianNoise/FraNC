@@ -50,5 +50,65 @@ Output:
     witness shapes [(3, 100), (3, 200)]
     target shapes [(100,), (200,)]
 
+
 Executing an evaluation run
 ============================
+
+The following is a minimal example to execute a :py:class:`franc.evaluation.EvaluationRun`.
+A pdf report can be generated with `compile_report=True` (this requires a latex installation and `pdflatex` to be on the path).
+By default the evaluation run creates a folder structure for the generated files in the current working directory.
+The location can be changed through the `directory` parameter.
+
+.. testcode::
+
+   import franc as fnc
+ 
+ 
+   # create a simple dataset
+   n_channel = 2
+   dataset = fnc.eval.TestDataGenerator(
+       [0.1] * n_channel, rng_seed=0xdeadbeef
+   ).dataset([int(1e4), int(1e4)], [int(1e4), int(2e4)])
+   dataset.target_unit = "AU"
+
+   print('dataset hash', franc.common.hash_function_str(dataset.hash_bytes()))
+ 
+   # define evaluation run
+   filter_configurations = [
+       (
+           fnc.filt.WienerFilter,
+           [{"n_filter": 16, "idx_target": 0, "n_channel": n_channel}],
+       ),
+       (
+           fnc.filt.LMSFilter,
+           [{"n_filter": 16, "idx_target": 0, "n_channel": n_channel}],
+       ),
+   ]
+ 
+   eval_run = fnc.eval.EvaluationRun(
+       filter_configurations,
+       dataset,
+       fnc.eval.RMSMetric(),
+       [fnc.eval.MSEMetric(), fnc.eval.PSDMetric()],
+       directory="test_outputs/", # either change this or create a directory with that name
+   )
+ 
+   # execute evaluation run
+   results = eval_run.run()
+ 
+   # set compile_report to True to generate a pdf file
+   eval_run.generate_report(results, compile_report=False)
+
+.. testoutput::
+
+    dataset hash dMaPUtgfVvNz6m4a8dZBcwBE5Dg=
+    WF (ran conditioning and calculated prediction)
+        target:  Residual RMS: 0.055742 AU
+          Residual MSE: 0.003107 (AU)²
+          Power spectral density: [0.00120477 0.00486207 0.00600259 ... 0.00522923 0.00441593
+     0.00209125]
+    LMS (ran conditioning and calculated prediction)
+        target:  Residual RMS: 0.056846 AU
+          Residual MSE: 0.003231 (AU)²
+          Power spectral density: [0.0012004  0.00492334 0.00648095 ... 0.00600755 0.0050999
+     0.00228771]
