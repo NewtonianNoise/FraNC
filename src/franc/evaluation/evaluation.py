@@ -383,20 +383,13 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         optimization_metric = results[0][1][0][2]
         ax.set_ylabel(f"{optimization_metric.name} [{optimization_metric.unit}]")
 
-        figure_path = (
-            self.directory / "report" / "plots" / f"comparison_{self.hash_str()}.pdf"
-        )
-        fig.savefig(figure_path)
+        figure_fname = f"comparison_{self.hash_str()}.pdf"
+        fig.savefig(self.directory / "report/plots" / figure_fname)
         plt.close(fig)
 
         report_section += [
             ReportFigure(
-                str(
-                    figure_path.relative_to(
-                        "report/tex/",
-                        walk_up=True,
-                    )
-                ),
+                str(Path("../plots") / figure_fname),
                 caption="Optimizaiton metric overview",
             )
         ]
@@ -453,20 +446,11 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                     fig.tight_layout()
 
                     # save and add to report
-                    fname = (
-                        self.directory
-                        / "report"
-                        / "plots"
-                        / f"{filter_method.filter_name}_{parameter}_{hash}.pdf"
-                    )
-                    fig.savefig(fname)
+                    fname = f"{filter_method.filter_name}_{parameter}_{hash}.pdf"
+                    fig.savefig(self.directory / "report/plots" / fname)
                     plt.close(fig)
 
-                    section.append(
-                        ReportFigure(
-                            str(fname.relative_to("report/tex/", walk_up=True))
-                        )
-                    )
+                    section.append(ReportFigure(str(Path("../plots/") / fname)))
 
             report_sections.append(section)
 
@@ -542,8 +526,9 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                         and metric.plot_path is not None
                     ):
                         path = Path(metric.plot_path)
-                        path = path.relative_to("report/tex/", walk_up=True)
-                        entry.append(ReportFigure(str(path), caption=metric.text))
+                        entry.append(
+                            ReportFigure("../plots/" + path.name, caption=metric.text)
+                        )
                     else:
                         entry.append(metric.text + "\n\n")
                 detailed_report_entries[f"Configuration {conf_idx+1}"] = entry
