@@ -4,7 +4,7 @@ requires = ["meson-python", "ninja", "numpy >= 2.0.0"]
 
 [project]
 name = "franc"
-version = "0.3.0a1"
+version = "0.3.0"
 description = "Evaluation framework for noise mitigation methods and implementations of different static and adaptive filtering techniques."
 readme = "README.md"
 license = "GPL-3.0-only"
