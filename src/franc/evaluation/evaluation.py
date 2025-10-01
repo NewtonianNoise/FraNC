@@ -32,14 +32,16 @@ class TestDataGenerator:
     """Generate simple test data for correlated noise mitigation techniques
     The channel count is implicitly defined by the shape of witness_noise_level
 
-    :param witness_noise_level: amplitude ratio of the sensor noise
+    :param witness_noise_level: Amplitude ratio of the sensor noise
                 to the correlated noise in the witness sensor
                 Scalar or 1D-vector for multiple sensors
-    :param target_noise_level: amplitude ratio of the sensor noise
+    :param target_noise_level: Amplitude ratio of the sensor noise
                 to the correlated noise in the target sensor
-    :param transfer_functon: ratio between the amplitude in the target and witness signals
+    :param transfer_function: Ratio between the amplitude in the target and witness signals
     :param sample_rate: The outputs are referenced
                 to an ASD of 1/sqrt(Hz) if a sample rate is provided
+    :param rng_seed: Optional value to generate the dataset based on a fixed seed for reproducible results.
+                If not set, the randomly seeded global numpy rng is used.
 
     >>> import franc as fnc
     >>> # create data with two witness sensors with relative noise amplitudes of 0.1
@@ -675,7 +677,7 @@ def residual_power_ratio(
     :param prediction: prediction array (same length as target
     :param start: use only a section of the arrays, start at this index
     :param stop: use only a section of the arrays, stop at this index
-    :param remove DC component: remove DC component before calculation
+    :param remove_dc: if true, the mean is subtracted from each array to remove the DC component before the calculations
     """
     target_npy = np.array(target[start:stop]).astype(np.float64)
     prediction_npy = np.array(prediction[start:stop]).astype(np.float64)
