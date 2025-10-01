@@ -120,6 +120,8 @@ testing/filter_serialization_test_file.*.npz
 
 # documentation building
 doc/source/autoapi/
+doc/test_outputs/*
+!doc/test_outputs/.gitkeep
 
 # MS office files
 \~$*.*x

@@ -625,7 +625,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 optimization_metric_result = self.optimization_metric.apply(
                     pred, self.dataset
                 )
-                print("\ttarget: ", optimization_metric_result.text)
+                print("    target: ", optimization_metric_result.text)
 
                 metric_results = [
                     metric.apply(pred, self.dataset) for metric in self.metrics
@@ -640,7 +640,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                             / metric.filename(result_filename)
                         )
                         metric.save_plot(save_path)
-                    print("\t", metric.text)
+                    print("     ", metric.text)
 
                 results[-1][1].append(
                     (
