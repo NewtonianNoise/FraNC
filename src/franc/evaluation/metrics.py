@@ -158,7 +158,10 @@ class EvaluationMetric(abc.ABC):
 
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
-        """String indicating the evaluation result"""
+        """String indicating the evaluation result
+
+        :param result_full: The return value of metric.result_full()
+        """
         return f"{cls.name}: {str(result_full[0])}"
 
     @property
@@ -264,7 +267,10 @@ class EvaluationMetricPlottable(EvaluationMetric):
         self.plot_path = fname
 
     def filename(self, context: str) -> str:
-        """Generate a filename that includes the given context string"""
+        """Generate a filename that includes the given context string
+
+        :param context: This string is included in the generated filename
+        """
         return self.name + "_" + context + "_" + self.method_hash_str + ".pdf"
 
 

@@ -136,7 +136,12 @@ class FilterInterface(abc.ABC):
         witness: Sequence | Sequence[Sequence] | NDArray,
         target: Sequence | NDArray,
     ) -> Any:
-        """Similar to condition(), but expects multiple sequences"""
+        """Similar to condition(), but expects multiple sequences
+
+        First index to the given data objects indicates the sequence.
+        The last index indicates the time within a single sequence.
+        Sequences must not have the same length.
+        """
 
     def apply(
         self,
@@ -145,7 +150,7 @@ class FilterInterface(abc.ABC):
         pad: bool = True,
         update_state: bool = False,
     ) -> NDArray:
-        """Apply the filter to input data
+        """Apply the filter to a single sequence of input data
 
         :param witness: Witness sensor data (1D or 2D array)
         :param target: Target sensor data (1D array)
@@ -166,9 +171,12 @@ class FilterInterface(abc.ABC):
         pad: bool = True,
         update_state: bool = False,
     ) -> Sequence[NDArray]:
-        """Apply the filter to input data
+        """Apply the filter to multiple sequences of input data.
 
         Similar to apply() but expects multiple sequences.
+        First index to the given data objects indicates the sequence.
+        The last index indicates the time within a single sequence.
+        Sequences must not have the same length.
         """
 
     def check_data_dimensions(

@@ -125,7 +125,11 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
         return len(self.witness_conditioning[0])
 
     def sequence_lengths(self, which: str) -> list[int]:
-        """Returns the length of the sequence identified by which ("cond", "conditioning", "eval", or "evaluation")"""
+        """Returns the lengths of the evaluation or conditioning sequences
+
+        :param which: A string selecting which sequence will be analyzed.
+            Must be one of the following values: "cond", "conditioning", "eval", or "evaluation".
+        """
         if which in {"conditioning", "cond"}:
             lengths = [len(sequence) for sequence in self.target_conditioning]
         elif which in {"evaluation", "eval"}:
