@@ -105,10 +105,8 @@ The location can be changed through the `directory` parameter.
     WF (ran conditioning and calculated prediction)
         target:  Residual RMS: 0.055742 AU
           Residual MSE: 0.003107 (AU)²
-          Power spectral density: [0.00120477 0.00486207 0.00600259 ... 0.00522923 0.00441593
-     0.00209125]
+          Power spectral density
     LMS (ran conditioning and calculated prediction)
         target:  Residual RMS: 0.056846 AU
           Residual MSE: 0.003231 (AU)²
-          Power spectral density: [0.0012004  0.00492334 0.00648095 ... 0.00600755 0.0050999
-     0.00228771]
+          Power spectral density

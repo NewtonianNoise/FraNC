@@ -242,6 +242,11 @@ class EvaluationMetricPlottable(EvaluationMetric):
 
     plot_path: str | Path | None = None
 
+    @classmethod
+    def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
+        """String indicating the evaluation result"""
+        return f"{cls.name}"
+
     @abc.abstractmethod
     def plot(self, ax: Axes):
         """Generate a result plot on the given axes object"""
