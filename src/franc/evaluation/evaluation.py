@@ -233,25 +233,9 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         directory: str = ".",
         figsize: tuple[float, float] = (10, 4),
     ):
-        # check that input data format
-        self.multi_sequence_support = (
-            True  # indicates whether all methods support multiple sequences
+        self.multi_sequence_support = self._check_method_configurations(
+            method_configurations
         )
-        for filter_technique, configurations in method_configurations:
-            if not issubclass(filter_technique, FilterInterface):
-                raise TypeError(
-                    "Only filtering techniques with the FilterInterface interface are supported."
-                )
-            if len(configurations) < 0:
-                raise TypeError(
-                    "At least one parameter configuration must be supported."
-                )
-            for config in configurations:
-                if not isinstance(config, dict):
-                    raise TypeError("Filter configurations must be dictionaries.")
-
-            if not filter_technique.supports_multi_sequence:
-                self.multi_sequence_support = False
 
         if not isinstance(dataset, EvaluationDataset):
             raise TypeError("Dataset must be an EvaluationDataset instance.")
@@ -274,7 +258,47 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         self.directory = Path(directory)
         self.figsize = figsize
 
+        # add n_channel values in case they were not supplied
+        def add_n_channel(conf: dict):
+            if "n_channel" in conf:
+                return conf
+            return conf | {"n_channel": self.dataset.channel_count}
+
+        self.method_configurations = [
+            (fm, [add_n_channel(conf) for conf in configurations])
+            for fm, configurations in self.method_configurations
+        ]
+
+        for _, configurations in method_configurations:
+            for conf in configurations:
+                if "n_channel" not in conf:
+                    conf = conf | {"n_channel": self.dataset.channel_count}
+
         self.all_configurations_list: list | None = None
+
+    def _check_method_configurations(
+        self,
+        method_configurations: Sequence[tuple[type[FilterInterface], Sequence]],
+    ) -> bool:
+        """Throw meaningful errors for problems with the configurations"""
+        multi_sequence_support = True
+
+        for filter_technique, configurations in method_configurations:
+            if not issubclass(filter_technique, FilterInterface):
+                raise TypeError(
+                    "Only filtering techniques with the FilterInterface interface are supported."
+                )
+            if len(configurations) < 0:
+                raise TypeError(
+                    "At least one parameter configuration must be supported."
+                )
+            for config in configurations:
+                if not isinstance(config, dict):
+                    raise TypeError("Filter configurations must be dictionaries.")
+
+            if not filter_technique.supports_multi_sequence:
+                multi_sequence_support = False
+        return multi_sequence_support
 
     def get_all_configurations(self) -> list:
         """Returns a list of all unique (filter_technique, configuration) pairs."""
