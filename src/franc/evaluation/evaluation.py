@@ -374,12 +374,14 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             ),
         )
 
-        y_min = min(i[1] for i in optimization_metric_ranges)
-        y_max = max(i[2] for i in optimization_metric_ranges)
-        ax.set_ylim(
+        y_min = min(min(i[2]) for i in optimization_metric_ranges)
+        y_max = max(max(i[2]) for i in optimization_metric_ranges)
+        y_limits = [
             y_min - (y_max - y_min) * 0.05,
             y_max + (y_max - y_min) * 0.05,
-        )
+        ]
+        if y_limits[0] != y_limits[1]:
+            ax.set_ylim(*y_limits)
 
         # get an evaluation metric instantiated on the dataset
         optimization_metric = results[0][1][0][2]
