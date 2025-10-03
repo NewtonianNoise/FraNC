@@ -484,9 +484,9 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
             rasterized=True,
         )
 
-        x_marker = 0
+        x_marker = 0.0
         for section in self.result_full()[0]:
-            x_marker += len(section)
+            x_marker += len(section) / self.dataset.sample_rate
             plt.axvline(x_marker, c="k")
 
         ax.set_xlim(x[0], x[-1])
