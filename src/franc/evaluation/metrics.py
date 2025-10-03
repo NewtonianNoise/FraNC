@@ -144,7 +144,7 @@ class EvaluationMetric(abc.ABC):
 
         new_instance.applied = True
 
-        self.unit = dataset.target_unit
+        new_instance.unit = dataset.target_unit
         return new_instance
 
     @abc.abstractmethod
