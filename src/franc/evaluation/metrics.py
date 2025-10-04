@@ -16,8 +16,9 @@ from pathlib import Path
 import numpy as np
 from numpy.typing import NDArray
 from matplotlib.axes import Axes
+from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
-from scipy.signal import welch
+from scipy.signal import welch, spectrogram
 
 from .dataset import EvaluationDataset
 from ..common import hash_object_list, hash_function, bytes2str
@@ -268,12 +269,13 @@ class EvaluationMetricPlottable(EvaluationMetric):
         fname: str | Path,
         figsize: tuple[int, int] = (10, 4),
         tight_layout: bool = True,
+        dpi: float = 200,
     ):
         """Save the plot to a file"""
         # set serif font globally for matplotlib
         plt.rcParams["font.family"] = "serif"
 
-        fig, ax = plt.subplots(figsize=figsize)
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
         ax.grid(True, zorder=-1)
         self.plot(ax)
         if tight_layout:
@@ -580,3 +582,111 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
         ax.set_ylabel(f"Target/residual signal [{self.dataset.target_unit}]")
 
         ax.legend()
+
+
+class SpectrogramMetric(EvaluationMetricPlottable):
+    """Plots a spectrogram (waterfall diagram) for the residual signal
+
+    :param n_fft: Sample count per FFT block used by Welch's method
+    :param window: FFT window type
+    """
+
+    name = "Spectrogram"
+
+    @EvaluationMetric.init_wrapper
+    def __init__(
+        self,
+        n_fft: int = 4096,
+        window: str = "hann",
+        with_signal: bool = True,
+        xlim: tuple[float, float] | None = None,
+        ylim: tuple[float, float] | None = None,
+        asd: bool = True,
+    ):
+        super().__init__(
+            n_fft=n_fft,
+            window=window,
+            with_signal=with_signal,
+            xlim=xlim,
+            ylim=ylim,
+            asd=asd,
+        )
+
+        if n_fft < 2:
+            raise ValueError("n_fft must be greater than 1")
+
+        self.n_fft = n_fft
+        self.window = window
+        self.with_signal = with_signal
+        self.xlim = xlim
+        self.ylim = ylim
+        self.asd = asd
+
+    @EvaluationMetric.result_full_wrapper
+    def result_full(self) -> tuple[NDArray, tuple[float, float, float, float], str]:
+        """The spectrogram and additional information
+        :return: (spectrogram, spectrogram extent, figure_label)
+            The spectrogram extent is given in the format that `matplotlib.pyplot.imshow` requires.
+        """
+        residual = self.residual_signal if self.with_signal else self.residual
+        residual = np.concatenate(residual)
+        f, t, Sxx = spectrogram(
+            residual,
+            fs=self.dataset.sample_rate,
+            window=self.window,
+            nperseg=self.n_fft,
+            scaling="density",
+        )
+
+        figure_label = " with signal" if self.with_signal else ""
+        if self.xlim is not None:
+            figure_label += f", {self.xlim[0]}-{self.xlim[1]} s"
+        if self.ylim is not None:
+            figure_label += f", {self.ylim[0]}-{self.ylim[1]} Hz"
+
+        if self.asd:
+            Sxx = np.sqrt(Sxx)
+            figure_label = "ASD " + figure_label
+
+        return (
+            Sxx,
+            (t[0], t[-1], f[0], f[-1]),
+            figure_label,
+        )
+
+    @classmethod
+    def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
+        """String indicating the evaluation result
+
+        :param result_full: The return value of metric.result_full()
+        """
+        return f"{cls.name} {result_full[2]}"
+
+    def plot(self, ax: Axes):
+        result_full = self.result_full()
+        plt.imshow(
+            result_full[0],
+            norm=LogNorm(),
+            extent=result_full[1],
+            aspect="auto",
+            origin="lower",
+        )
+        c_label = (
+            f"Residual signal [{self.dataset.target_unit}/√Hz]"
+            if self.asd
+            else f"Residual signal [({self.dataset.target_unit})²/Hz]"
+        )
+        plt.colorbar(ax=ax, label=c_label)
+
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel("Frequency [Hz]")
+
+        if self.xlim is not None:
+            ax.set_xlim(*self.xlim)
+        if self.ylim is not None:
+            ax.set_ylim(*self.ylim)
+
+        x_marker = 0.0
+        for section in self.residual:
+            x_marker += len(section) / self.dataset.sample_rate
+            plt.axvline(x_marker, c="k")

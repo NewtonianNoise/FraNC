@@ -11,6 +11,7 @@ from .metrics import (
     BandwidthPowerMetric,
     PSDMetric,
     TimeSeriesMetric,
+    SpectrogramMetric,
 )
 from .evaluation import (
     EvaluationRun,
@@ -36,6 +37,7 @@ __all__ = [
     "BandwidthPowerMetric",
     "PSDMetric",
     "TimeSeriesMetric",
+    "SpectrogramMetric",
     "EvaluationRun",
     "TestDataGenerator",
     "residual_power_ratio",
