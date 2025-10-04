@@ -119,6 +119,7 @@ class Report(dict):
 \usepackage{graphicx}
 \usepackage{listings}
 \usepackage{amsmath} % red arrow for listing line break
+\usepackage[hidelinks]{hyperref} % for links within the document
 
 \lstset{
 breaklines=true,
@@ -127,6 +128,9 @@ postbreak=\mbox{{$\hookrightarrow$}\space},
 
 
 \begin{document}
+
+\tableofcontents
+
 """
 
     block_end = r"\end{document}"
@@ -189,14 +193,17 @@ postbreak=\mbox{{$\hookrightarrow$}\space},
         """
         fname = Path(fname)
         self.save(fname.with_suffix(".tex"))
-        retval = subprocess.run(
-            ["pdflatex", "-halt-on-error", fname.with_suffix(".tex").name],
-            cwd=fname.parent,
-            check=False,
-            capture_output=True,
-        )
-        if retval.returncode != 0:
-            print(retval.stdout, "\n\n", retval.stderr)
-            raise RuntimeError("PDF generation with pdflatex failed.")
+
+        # run twice so that the table of contents is generated correctly
+        for _ in range(2):
+            retval = subprocess.run(
+                ["pdflatex", "-halt-on-error", fname.with_suffix(".tex").name],
+                cwd=fname.parent,
+                check=False,
+                capture_output=True,
+            )
+            if retval.returncode != 0:
+                print(retval.stdout, "\n\n", retval.stderr)
+                raise RuntimeError("PDF generation with pdflatex failed.")
 
         return fname.with_suffix(".pdf")

@@ -11,13 +11,16 @@ from .metrics import (
     BandwidthPowerMetric,
     PSDMetric,
     TimeSeriesMetric,
+    SpectrogramMetric,
 )
 from .evaluation import (
     EvaluationRun,
-    TestDataGenerator,
     residual_power_ratio,
     residual_amplitude_ratio,
     measure_runtime,
+)
+from .signal_generation import (
+    TestDataGenerator,
 )
 from .report_generation import ReportElement
 from .filter_interface import FilterInterface, make_2d_array, handle_from_dict
@@ -34,6 +37,7 @@ __all__ = [
     "BandwidthPowerMetric",
     "PSDMetric",
     "TimeSeriesMetric",
+    "SpectrogramMetric",
     "EvaluationRun",
     "TestDataGenerator",
     "residual_power_ratio",
