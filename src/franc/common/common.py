@@ -86,9 +86,13 @@ def hash_object_list(objects: Sequence) -> bytes:
     """hash objects in a list
     Will raise a TypeError if an input value has an unsupported type
     """
+
+    def uint_hash(x):
+        return x.to_bytes(length=int((x.bit_length() + 7) / 8), byteorder="big")
+
     type_handling = {
         int: lambda x: hash_function(
-            x.to_bytes(length=int((x.bit_length() + 7) / 8), byteorder="big")
+            uint_hash(x) if x >= 0 else uint_hash(-x) + b"negative_integer"
         ),
         bytes: hash_function,
         str: lambda x: hash_function(x.encode()),
