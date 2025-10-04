@@ -1,15 +1,108 @@
-"""Tools to generate test data and EvaluatoinDatasets"""
+"""Tools to generate test data and EvaluationDatasets"""
 
 from typing import Any
 from collections.abc import Sequence
 
 import numpy as np
 from numpy.typing import NDArray
+import numba
 
 from .dataset import EvaluationDataset
 
 NDArrayF = NDArray[np.floating]
 NDArrayU = NDArray[np.uint]
+
+
+@numba.jit
+def generate_wave_packet(
+    width: float,
+    amplitude: float,
+    frequency: float,
+    phase: float,
+    generation_width: int = 10,
+    peak_scaling: bool = True,
+) -> NDArrayF:
+    """Generate a Gaussian wave packet. Time related parameters (width and frequency)
+    can be interpreted as number of samples or seconds at a sampling rate of 1 Hz.
+
+    The amplitude normalization is chosen so that the sum of squares of the samples is one,
+    so that the amplitude defines a fixed total energy of the signal.
+
+    :param width: The standard deviation σ parameter of the hull curve
+    :param amplitude: Amplitude of the signal
+    :param frequency: Frequency of the sinusoidal signal component
+    :param phase: Phase of the sinusoidal signal component in rad. Zero indicates that a maximum is in phase with the peak of the hull curve
+    :param generation_width: How many samples to generate, indicated in multiples of the width parameter to one side.
+        Example: width=5 and generation_width=10 will result in 2*5*10=100+1 samples total.
+    :param peak_scaling: If `True`, amplitude will determine the potential maximum value of the wave packet.
+        If set to `False`, the wave packet will be scaled so that the sum of the squares of all samples is one.
+    """
+    half_length = int(np.ceil(width * generation_width))
+    T = np.arange(2 * half_length + 1) - half_length
+    sinusoidal = np.sin(2 * np.pi * frequency * T + phase) * np.sqrt(2)
+
+    # First option: does not work with numba.jit
+    # hull = scipy.stats.norm.pdf(T, 0, width)
+    # Gaussian and normalization written separately
+    # hull = np.exp(-((T / width) ** 2) / 2) / width / np.sqrt(2 * np.pi)
+    # hull *= np.sqrt(width) * 2
+    hull = np.exp(-((T / width) ** 2) / 2) * np.sqrt(2 / np.pi / width)
+    if peak_scaling:
+        hull /= hull[half_length]
+
+    return sinusoidal * hull * amplitude
+
+
+def generate_wave_packet_signal(
+    n_samples: int,
+    n_wave_packets: int,
+    width_range: tuple[float, float],
+    amplitude_range: tuple[float, float],
+    frequency_range: tuple[float, float],
+    rng: np.random.Generator,
+    generation_width: int = 10,
+    peak_scaling: bool = True,
+) -> tuple[NDArrayF, NDArrayF]:
+    """Generate a signal consisting of wave packets with `generate_wave_packet`.
+    All values are generated based on uniform distributions with the given ranges.
+
+    :param n_samples: Length of the generated sequence
+    :param n_wave_packets: Number of generated wave packets
+    :param width_range: Tuple with lower and upper bound for width parameter
+    :param amplitude_range: Tuple with lower and upper bound for amplitude parameter
+    :param frequency_range: Tuple with lower and upper bound for frequency parameter
+    :param rng: A numpy random number generator instance
+    :param generator_width: How many standard deviations of the hull curve will be generated per packet
+        Higher numbers will increase calculation time
+    :param peak_scaling: Passed to generate_wave_packet()
+
+    :return: Generated sequence, Sequence[(position, width, amplitude, frequency, phase)]
+    """
+    # the sequence is first generated on a longer array with padding
+    # this allows simpler adding of new values
+    padding = int(np.ceil(width_range[1] * generation_width + 1))
+
+    positions = rng.integers(padding, n_samples + padding, n_wave_packets)
+    widths = rng.uniform(*width_range, n_wave_packets)
+    amplitudes = rng.uniform(*amplitude_range, n_wave_packets)
+    frequencies = rng.uniform(*frequency_range, n_wave_packets)
+    phases = rng.uniform(0, 2 * np.pi, n_wave_packets)
+
+    packet_properties = np.array(
+        (positions, widths, amplitudes, frequencies, phases), dtype=np.float64
+    ).T
+
+    sequence = np.zeros(n_samples + 2 * padding)
+    for position, width, amplitude, frequency, phase in packet_properties:
+        packet = generate_wave_packet(
+            width, amplitude, frequency, phase, generation_width, peak_scaling
+        )
+
+        half_width = int(len(packet) / 2)
+        position = int(position)
+        sequence[position - half_width : position + half_width + 1] += packet
+
+    return (sequence[padding:-padding], packet_properties)
 
 
 class TestDataGenerator:
@@ -18,8 +111,8 @@ class TestDataGenerator:
 
     :param witness_noise_level: Amplitude ratio of the sensor noise
                 to the correlated noise in the witness sensor
-                Scalar or 1D-vector for multiple sensors
     :param target_noise_level: Amplitude ratio of the sensor noise
+                Scalar or 1D-vector for multiple sensors
                 to the correlated noise in the target sensor
     :param transfer_function: Ratio between the amplitude in the target and witness signals
     :param sample_rate: The outputs are referenced
