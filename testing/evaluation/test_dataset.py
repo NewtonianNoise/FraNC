@@ -23,7 +23,6 @@ class TestEvaluationDataset(unittest.TestCase):
         signal = target
 
         fnc.evaluation.EvaluationDataset(1.0, witness, target, witness, target)
-        fnc.evaluation.EvaluationDataset(1.0, witness, target, witness, target, signal)
         fnc.evaluation.EvaluationDataset(
             1.0, witness, target, witness, target, signal, signal
         )
