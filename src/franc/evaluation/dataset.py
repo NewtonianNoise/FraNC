@@ -68,6 +68,13 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
         self.name = name
         self.target_unit = target_unit
 
+        if (signal_conditioning is None and signal_evaluation is not None) or (
+            signal_conditioning is not None and signal_evaluation is None
+        ):
+            raise ValueError(
+                "Signal data must either be provided for both conditioning and evlauation or not at all."
+            )
+
         if not isinstance(name, str):
             raise ValueError("name must be a string")
 
@@ -123,6 +130,11 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
     def channel_count(self) -> int:
         """Number of witness channels"""
         return len(self.witness_conditioning[0])
+
+    @property
+    def has_signal(self) -> bool:
+        """Indicates whether the dataset has a signal channel"""
+        return self.signal_evaluation is not None
 
     def sequence_lengths(self, which: str) -> list[int]:
         """Returns the lengths of the evaluation or conditioning sequences
