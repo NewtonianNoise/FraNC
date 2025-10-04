@@ -75,16 +75,24 @@ def welch_multiple_sequences(
 class EvaluationMetric(abc.ABC):
     """Parent class for evaluation metrics"""
 
-    # indicates whether data is available
     applied = False
+    """indicates whether data is available"""
     prediction: Sequence[NDArray] | NDArray
     dataset: EvaluationDataset
     residual: Sequence[NDArray]
+    """Residual without the signal (=zero for perfect filter)."""
+    residual_signal: Sequence[NDArray]
+    """Residual including the signal (=signal for perfect filter)."""
     parameters: dict = {}
+    """The parameters with which the metric was initialized.
+
+    Needed to re instantiate the filter during apply() and for hashing.
+    """
     name: str
     method_hash_value: bytes
 
     unit = "AU"
+    """unit of the target and prediction channels"""
 
     @staticmethod
     def init_wrapper(func):
@@ -137,10 +145,14 @@ class EvaluationMetric(abc.ABC):
                     prediction, dataset.target_evaluation, dataset.signal_evaluation
                 )
             ]
+            new_instance.residual_signal = [
+                t - p for p, t in zip(prediction, dataset.target_evaluation)
+            ]
         else:
             new_instance.residual = [
                 t - p for p, t in zip(prediction, dataset.target_evaluation)
             ]
+            new_instance.residual_signal = new_instance.residual
 
         new_instance.applied = True
 
@@ -378,7 +390,8 @@ class PSDMetric(EvaluationMetricPlottable):
     :param window: FFT window type
     :param logx: Logarithmic x scale
     :param logy: Logarithmic y scale
-    :param show_target: If True, also show spectrum of the target signal
+    :param show_target: If True, also show spectrum of the target channel
+    :param show_target_minus_signal: If True, also show spectrum of the target channel minus the signal
     """
 
     name = "Power spectral density"
@@ -391,9 +404,17 @@ class PSDMetric(EvaluationMetricPlottable):
         logx: bool = True,
         logy: bool = True,
         show_target: bool = True,
+        show_target_minus_signal: bool = True,
+        show_signal: bool = False,
     ):
         super().__init__(
-            n_fft=n_fft, window=window, logx=logx, logy=logy, show_target=show_target
+            n_fft=n_fft,
+            window=window,
+            logx=logx,
+            logy=logy,
+            show_target=show_target,
+            show_target_minus_signal=show_target_minus_signal,
+            show_signal=show_signal,
         )
 
         if n_fft < 2:
@@ -404,6 +425,8 @@ class PSDMetric(EvaluationMetricPlottable):
         self.logx = logx
         self.logy = logy
         self.show_target = show_target
+        self.show_target_minus_signal = show_target_minus_signal
+        self.show_signal = show_signal
 
     def _welch_multiple_sequences(self, signal: Sequence[NDArray]):
         """apply welch_multiple_sequences() with correct settings"""
@@ -420,24 +443,26 @@ class PSDMetric(EvaluationMetricPlottable):
         f, S_rr, S_rr_min, S_rr_max = self._welch_multiple_sequences(self.residual)
         return (S_rr, f, S_rr_min, S_rr_max)
 
+    def _plot_channel(
+        self,
+        ax: Axes,
+        signal: Sequence[NDArray],
+        label: str,
+        color=None,
+        ls="-",
+        zorder=10,
+    ):
+        """Plot spectrum of the signal onto the axes object"""
+        f, Stt, Stt_min, Stt_max = self._welch_multiple_sequences(signal)
+        ax.fill_between(f, Stt_min, Stt_max, fc=color, alpha=0.3)
+        ax.plot(f, Stt, label=label, c=color, ls=ls, zorder=zorder)
+        plt.legend()
+
     def plot(self, ax: Axes):
         """Plot to the given Axes object"""
         freq = self.result_full()[1]
-        ax.fill_between(
-            freq, self.result_full()[2], self.result_full()[3], fc="C0", alpha=0.3
-        )
-        ax.plot(freq, self.result, label="Residual", c="C0")
-        if self.show_target:
-            f, Stt, Stt_min, Stt_max = self._welch_multiple_sequences(
-                self.dataset.target_evaluation
-            )
-            ax.fill_between(freq, Stt_min, Stt_max, fc="C1", alpha=0.3)
-            ax.plot(f, Stt, label="Target", c="C1")
-            plt.legend()
 
-        ax.set_xlabel("Frequency [Hz]")
-        ax.set_ylabel(f"PSD [({self.dataset.target_unit})$^2$/Hz]")
-
+        # setup up axes
         if self.logx:
             ax.set_xscale("log")
             ax.set_xlim(min(freq[freq > 0]), max(freq))
@@ -445,10 +470,50 @@ class PSDMetric(EvaluationMetricPlottable):
             ax.set_xlim(min(freq), max(freq))
         if self.logy:
             ax.set_yscale("log")
+        ax.fill_between(
+            freq, self.result_full()[2], self.result_full()[3], fc="C0", alpha=0.3
+        )
+
+        # plotting
+        ax.plot(freq, self.result, label="Residual", c="C0")
+
+        if self.show_target:
+            self._plot_channel(ax, self.dataset.target_evaluation, "Target", "C1")
+
+        if self.show_target_minus_signal and self.dataset.has_signal:
+            difference = [
+                t - s
+                for t, s in zip(
+                    self.dataset.target_evaluation,
+                    self.dataset.signal_evaluation,  # type: ignore[arg-type]
+                )
+            ]
+            self._plot_channel(ax, difference, "Target - signal", "C2")
+
+        if self.dataset.has_signal:
+            self._plot_channel(
+                ax, self.residual_signal, "Residual w/ signal", "C3", ls="--"
+            )
+
+        ax.autoscale(
+            False
+        )  # to prevent very low values of signal from significantly altering the result plot
+        if self.show_signal and self.dataset.has_signal:
+            self._plot_channel(ax, self.dataset.signal_evaluation, "Signal", "C4", zorder=9)  # type: ignore[arg-type]
+
+        # labels
+        ax.set_xlabel("Frequency [Hz]")
+        ax.set_ylabel(f"PSD [({self.dataset.target_unit})$^2$/Hz]")
 
 
 class TimeSeriesMetric(EvaluationMetricPlottable):
-    """Plots the signal as a time series"""
+    """Plots the signal as a time series
+
+    :param show_target: if True, display the target channel
+    :param show_target_minus_signal: if True, display the target channel minus the signal channel
+    :param start: Start of the shown data as a sample index to the concatenated evaluation sequences.
+    :param stop: Stop of the shown data as a sample index to the concatenated evaluation sequences.
+    """
 
     name = "Time series"
 
@@ -456,33 +521,54 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
     def __init__(
         self,
         show_target: bool = True,
+        show_target_minus_signal: bool = True,
+        show_signal: bool = False,
+        residual_with_signal=True,
+        start: int = 0,
+        stop: int = -1,
     ):
-        super().__init__(show_target=show_target)
+        super().__init__(
+            show_target=show_target,
+            show_target_minus_signal=show_target_minus_signal,
+            show_signal=show_signal,
+            residual_with_signal=residual_with_signal,
+            stop=stop,
+            start=start,
+        )
         self.show_target = show_target
+        self.show_target_minus_signal = show_target_minus_signal
+        self.show_signal = show_signal
+        self.residual_with_signal = residual_with_signal
+        self.start = start
+        self.stop = stop
 
     @EvaluationMetric.result_full_wrapper
     def result_full(self) -> tuple[Sequence[NDArray],]:
+        if self.residual_with_signal:
+            return (self.residual_signal,)
         return (self.residual,)
 
     def plot(self, ax: Axes):
         """Plot to the given Axes object"""
-        if self.show_target:
-            y = np.concatenate(self.dataset.target_evaluation)
-            ax.plot(
-                np.arange(len(y)) / self.dataset.sample_rate,
-                y,
-                label="Target",
-                rasterized=True,
-            )
+        t = np.concatenate(self.dataset.target_evaluation)[self.start : self.stop]
+        x = np.arange(len(t)) / self.dataset.sample_rate
 
-        y = np.concatenate(self.result_full()[0])
-        x = np.arange(len(y)) / self.dataset.sample_rate
-        ax.plot(
-            x,
-            y,
-            label="Residual",
-            rasterized=True,
+        if self.show_target:
+            ax.plot(x, t, label="Target", rasterized=True)
+
+        r = np.concatenate(self.result_full()[0])[self.start : self.stop]
+        label_residual = (
+            "Residual w/ signal" if self.residual_with_signal else "Residual w/o signal"
         )
+        ax.plot(x, r, label=label_residual, rasterized=True)
+
+        if self.dataset.has_signal:
+            s = np.concatenate(self.dataset.signal_evaluation)[self.start : self.stop]  # type: ignore[arg-type]
+            if self.show_target_minus_signal:
+                ax.plot(x, t - s, label="Target - Signal", rasterized=True, ls="--")
+
+            if self.show_signal:
+                ax.plot(x, s, label="Signal", rasterized=True, ls="--")
 
         x_marker = 0.0
         for section in self.result_full()[0]:
