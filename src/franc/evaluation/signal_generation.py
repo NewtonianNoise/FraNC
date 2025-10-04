@@ -78,6 +78,11 @@ def generate_wave_packet_signal(
 
     :return: Generated sequence, Sequence[(position, width, amplitude, frequency, phase)]
     """
+    if frequency_range[1] > 0.5:
+        raise ValueError(
+            "Maximum value of frequencey_range is above niquist limit of 0.5."
+        )
+
     # the sequence is first generated on a longer array with padding
     # this allows simpler adding of new values
     padding = int(np.ceil(width_range[1] * generation_width + 1))
