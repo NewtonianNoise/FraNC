@@ -97,10 +97,10 @@ def hash_object_list(objects: Sequence) -> bytes:
         ),
         bytes: hash_function,
         str: lambda x: hash_function(x.encode()),
-        list: hash_object_list,
         bool: lambda x: hash_function(bytes(x)),
         float: lambda x: hash_function(struct.pack("d", x)),
         np.ndarray: hash_function,
+        Sequence: hash_object_list,
         NoneType: lambda _: hash_function(b"NoneType"),
     }
 
