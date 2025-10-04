@@ -265,8 +265,8 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             ),
         )
 
-        y_min = min(min(i[2]) for i in optimization_metric_ranges)
-        y_max = max(max(i[2]) for i in optimization_metric_ranges)
+        y_min = np.nanmin([np.nanmin(i[2]) for i in optimization_metric_ranges])
+        y_max = np.nanmax([np.nanmax(i[2]) for i in optimization_metric_ranges])
         y_limits = [
             y_min - (y_max - y_min) * 0.05,
             y_max + (y_max - y_min) * 0.05,
