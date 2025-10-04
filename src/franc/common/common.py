@@ -1,5 +1,6 @@
 """Common function for all submodules"""
 
+from types import NoneType
 from collections.abc import Sequence
 import hashlib
 import platform
@@ -100,6 +101,7 @@ def hash_object_list(objects: Sequence) -> bytes:
         bool: lambda x: hash_function(bytes(x)),
         float: lambda x: hash_function(struct.pack("d", x)),
         np.ndarray: hash_function,
+        NoneType: lambda _: hash_function(b"NoneType"),
     }
 
     hashes = b""
