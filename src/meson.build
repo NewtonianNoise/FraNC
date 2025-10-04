@@ -26,6 +26,7 @@ python_sources = [
   'franc/evaluation/evaluation.py',
   'franc/evaluation/filter_interface.py',
   'franc/evaluation/report_generation.py',
+  'franc/evaluation/signal_generation.py',
 ]
 
 # actually install the python module
