@@ -90,7 +90,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         If results are saved, the required folder structure will be created
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-branches
         self,
         method_configurations: Sequence[tuple[type[FilterInterface], Sequence]],
         dataset: EvaluationDataset,
@@ -162,6 +162,10 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             for config in configurations:
                 if not isinstance(config, dict):
                     raise TypeError("Filter configurations must be dictionaries.")
+            if len(configurations) == 0:
+                raise ValueError(
+                    "At least one configuration must be provided per filtering technique."
+                )
 
             if not filter_technique.supports_multi_sequence:
                 multi_sequence_support = False
