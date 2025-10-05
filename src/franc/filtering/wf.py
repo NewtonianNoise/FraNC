@@ -133,9 +133,9 @@ def wf_apply(
 class WienerFilter(FilterBase):
     """Satic Wiener filter implementation
 
+    :param n_channel: Number of witness sensor channels
     :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
     :param idx_target: Position of the prediction
-    :param n_channel: Number of witness sensor channels
 
     >>> import franc as fnc
     >>> n_filter = 128

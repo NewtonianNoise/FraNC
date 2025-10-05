@@ -5,6 +5,7 @@ from .wf import WienerFilter
 from .uwf import UpdatingWienerFilter
 from .lms import LMSFilter
 from .polylms import PolynomialLMSFilter
+from .bypass import BypassFilter
 
 #: A list of all filters for automated testing and comparisons
 all_filters = [
