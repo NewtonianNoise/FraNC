@@ -47,6 +47,7 @@ python_sources = [
   'franc/filtering/uwf.py',
   'franc/filtering/lms.py',
   'franc/filtering/polylms.py',
+  'franc/filtering/bypass.py',
 ]
 
 # actually install the python module
