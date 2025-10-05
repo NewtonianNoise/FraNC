@@ -166,7 +166,7 @@ class TestDataGenerator:
         assert self.sample_rate > 0
 
     def scaled_whitenoise(self, shape) -> NDArrayF:
-        """Generate whitenoise with an ASD of one
+        """Generate white noise with an ASD of one
 
         :param shape: shape of the new array
 
@@ -210,6 +210,8 @@ class TestDataGenerator:
         self,
         n_condition: Sequence[int] | NDArray[np.uint],
         n_evaluation: Sequence[int] | NDArray[np.uint],
+        generate_signal: bool = False,
+        signal_amplitude: float = 1.0,
         sample_rate: float = 1.0,
         name: str | None = None,
     ) -> EvaluationDataset:
@@ -234,11 +236,24 @@ class TestDataGenerator:
         cond_data = self.generate_multiple(n_condition)
         eval_data = self.generate_multiple(n_evaluation)
 
+        if generate_signal:
+            cond_signal = [
+                self.scaled_whitenoise(n) * signal_amplitude for n in n_condition
+            ]
+            eval_signal = [
+                self.scaled_whitenoise(n) * signal_amplitude for n in n_evaluation
+            ]
+        else:
+            cond_signal = None
+            eval_signal = None
+
         return EvaluationDataset(
             sample_rate,
             cond_data[0],
             cond_data[1],
             eval_data[0],
             eval_data[1],
+            cond_signal,
+            eval_signal,
             name=name if name else "Unnamed",
         )
