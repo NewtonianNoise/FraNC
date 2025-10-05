@@ -125,3 +125,7 @@ doc/test_outputs/*
 
 # MS office files
 \~$*.*x
+
+testing/test_outputs/
+!testing/test_outputs/.gitkeep
+

@@ -1,6 +1,9 @@
 """Test cases for different evaluation classes and functions"""
 
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+
 import numpy as np
 
 import franc as fnc
@@ -102,33 +105,94 @@ class TestMeasureRuntime(unittest.TestCase):
 class TestEvaluationRun(unittest.TestCase):
     """Test cases for the EvaluationRun class"""
 
-    def test_get_all_configurations(self):
-        """Check basic functionality of the get_all_configurations function"""
-        n_channel = 3
-
+    def generate_configuration(self, n_channel):
+        """Generate some testing data"""
         dataset = fnc.evaluation.TestDataGenerator(
-            witness_noise_level=[1] * n_channel
+            witness_noise_level=[1] * n_channel,
         ).dataset([1000], [1000])
 
         method_configurations = [
             (
                 fnc.filtering.WienerFilter,
                 [
-                    {"n_filter": n_filter, "idx_target": 0, "n_channel": n_channel}
-                    for n_filter in [10, 12]
+                    {"n_filter": 10, "idx_target": 0, "n_channel": n_channel},
+                    {"n_filter": 12, "idx_target": 0},
                 ],
             )
         ]
+        return dataset, method_configurations
+
+    def test_functionality(self):
+        """Check basic functionality"""
+        n_channel = 3
+
+        dataset, method_configurations = self.generate_configuration(n_channel)
+
         # enter the same configuration twice. It should only show up once in the result
         er = fnc.evaluation.EvaluationRun(
             method_configurations * 2,
             dataset,
             fnc.evaluation.RMSMetric(),
+            [fnc.evaluation.TimeSeriesMetric(stop=10)],
+            directory="testing/test_outputs/",
         )
 
+        def add_n_channel(parameters):
+            return parameters | {"n_channel": n_channel}
+
         expected_result = [
-            (filtering_method, conf)
+            (filtering_method, add_n_channel(conf))
             for filtering_method, configurations in method_configurations
             for conf in configurations
         ]
         self.assertEqual(er.get_all_configurations(), expected_result)
+
+        with redirect_stdout(StringIO()):
+            results = er.run()
+        er.generate_report(results, compile_report=False)
+
+    def test_wrong_parameters(self):
+        """Check that wrong parameters lead to matching errors"""
+        n_channel = 2
+        dataset, method_configurations = self.generate_configuration(n_channel)
+
+        # test passing not a filter instance
+        self.assertRaises(
+            TypeError,
+            fnc.evaluation.EvaluationRun,
+            [("not a filter instance", [{}])],
+            dataset,
+            fnc.evaluation.RMSMetric(),
+            directory="testing/test_outputs/",
+        )
+
+        # test passing not a dataset
+        self.assertRaises(
+            TypeError,
+            fnc.evaluation.EvaluationRun,
+            method_configurations,
+            "Not a dataset",
+            fnc.evaluation.RMSMetric(),
+            directory="testing/test_outputs/",
+        )
+
+        # test not optimization metric not being EvaluationMetricScalar
+        self.assertRaises(
+            TypeError,
+            fnc.evaluation.EvaluationRun,
+            method_configurations,
+            dataset,
+            fnc.evaluation.PSDMetric(),
+            directory="testing/test_outputs/",
+        )
+
+        # test a metric not being EvaluationMetric
+        self.assertRaises(
+            TypeError,
+            fnc.evaluation.EvaluationRun,
+            method_configurations,
+            dataset,
+            fnc.evaluation.PSDMetric(),
+            ["not a metric"],
+            directory="testing/test_outputs/",
+        )

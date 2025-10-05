@@ -9,7 +9,7 @@ import numpy as np
 import franc as fnc
 
 # file used to test saving and loading of filters
-TEST_FILE = "testing/filter_serialization_test_file"
+TEST_FILE = "testing/test_outputs/filter_serialization_test_file"
 
 RNG_SEED = 113510
 

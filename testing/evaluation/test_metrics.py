@@ -5,14 +5,16 @@ import unittest
 from collections.abc import Sequence
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import franc as fnc
 
 N_TEST_DATASET = 1000
-test_dataset = fnc.evaluation.TestDataGenerator(witness_noise_level=[1] * 3).dataset(
-    [N_TEST_DATASET], [N_TEST_DATASET]
-)
+test_dataset = fnc.evaluation.TestDataGenerator(
+    witness_noise_level=[1] * 3, rng_seed=0xDEADBEAF
+).dataset([N_TEST_DATASET], [N_TEST_DATASET])
+test_dataset_signal = fnc.evaluation.TestDataGenerator(
+    witness_noise_level=[1] * 3, rng_seed=0xDEADBEAF
+).dataset([N_TEST_DATASET], [N_TEST_DATASET], generate_signal=True, signal_amplitude=0)
 test_prediction = [
     np.array(seq, copy=True) + 1 for seq in test_dataset.target_evaluation
 ]
@@ -51,21 +53,28 @@ class TestEvaluationMetric:  # pylint: disable=too-few-public-methods
                 len(self.expected_results) == len(self.parameter_sets)
             )
 
-            for idx, metric in enumerate(self.instantiate_filters()):
-                metric = metric.apply(test_prediction, test_dataset)
+            for dataset in (test_dataset, test_dataset_signal):
+                for idx, metric in enumerate(self.instantiate_filters()):
+                    self.assertRaises(RuntimeError, metric.result_full)
 
-                self.assertIsInstance(metric.text, str)
+                    metric = metric.apply(test_prediction, dataset)
+                    self.assertIsInstance(metric.result_full(), tuple)
 
-                # optional check that the result is matching the expectation
-                if self.expected_results is not None:
-                    self.assertAlmostEqual(metric.result, self.expected_results[idx])
+                    self.assertIsInstance(metric.text, str)
 
-                if issubclass(
-                    self.tested_metric, fnc.evaluation.EvaluationMetricPlottable
-                ):
-                    fig, ax = plt.subplots()
-                    metric.plot(ax)
-                    plt.close(fig)
+                    # optional check that the result is matching the expectation
+                    if self.expected_results is not None:
+                        self.assertAlmostEqual(
+                            metric.result, self.expected_results[idx]
+                        )
+
+                    # test functionality of plottable filters
+                    if issubclass(
+                        self.tested_metric, fnc.evaluation.EvaluationMetricPlottable
+                    ):
+                        metric.save_plot(
+                            "testing/test_outputs/" + metric.filename("some_context")
+                        )
 
 
 class TestRMSMetric(TestEvaluationMetric.TestEvaluationMetric):
@@ -121,6 +130,48 @@ class TestPSDMetric(TestEvaluationMetric.TestEvaluationMetric):
             fnc.evaluation.PSDMetric,
             [
                 {"n_fft": 15},
-                {"n_fft": 16, "logx": False, "logy": False, "window": "boxcar"},
+                {
+                    "n_fft": 16,
+                    "logx": False,
+                    "logy": False,
+                    "window": "boxcar",
+                    "show_signal": True,
+                },
+            ],
+        )
+
+    def test_low_n_fft(self):
+        """Check that a too low n_fft value creates raises an exception"""
+        self.assertRaises(ValueError, self.tested_metric, n_fft=1)
+
+
+class TestTimeSeriesMEtric(TestEvaluationMetric.TestEvaluationMetric):
+    """Tests for TimeSeriesMetric"""
+
+    __test__ = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.set_tested_metric(
+            fnc.evaluation.TimeSeriesMetric,
+            [
+                {},
+            ],
+        )
+
+
+class TestSpectrogramMetric(TestEvaluationMetric.TestEvaluationMetric):
+    """Tests for SpectrogramMetric"""
+
+    __test__ = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.set_tested_metric(
+            fnc.evaluation.SpectrogramMetric,
+            [
+                {"n_fft": 32},
+                {"n_fft": 128, "xlim": (0, 100), "ylim": (0, 0.1)},
+                {"n_fft": 64, "with_signal": False, "asd": False},
             ],
         )
