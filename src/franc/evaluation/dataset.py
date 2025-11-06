@@ -199,6 +199,10 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
         hashes += hash_object_list(self.supplementary_data)
         return hash_function(hashes)
 
+    def hash_str(self) -> str:
+        """return a hash over the dataset data as a string"""
+        return bytes2str(self.hash_bytes())
+
     def __hash__(self) -> int:
         return bytes2int(self.hash_bytes())
 
