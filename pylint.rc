@@ -3,7 +3,7 @@ suggestion-mode=yes
 
 # R0801 checks for duplicate code.
 # It is disabled for now as it otherwise spams the linter output for unavoidable cases
-disable=too-many-positional-arguments, too-many-arguments, R0801
+disable=too-many-positional-arguments, too-many-arguments, R0801, useless-return
 
 [FORMAT]
 max-line-length=150
