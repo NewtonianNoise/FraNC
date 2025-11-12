@@ -390,7 +390,9 @@ class BandwidthPowerMetric(EvaluationMetricScalar):
         return (power, f[start_idx], f[stop_idx])
 
 
-class PSDMetric(EvaluationMetricPlottable):
+class PSDMetric(
+    EvaluationMetricPlottable
+):  # pylint: disable=too-many-instance-attributes
     """Plots the PSD of the given signal
 
     The spectrum is calculated with Welch on each sequence.
@@ -417,6 +419,7 @@ class PSDMetric(EvaluationMetricPlottable):
         show_target: bool = True,
         show_target_minus_signal: bool = True,
         show_signal: bool = False,
+        autoscale: bool = False,
     ):
         super().__init__(
             n_fft=n_fft,
@@ -426,6 +429,7 @@ class PSDMetric(EvaluationMetricPlottable):
             show_target=show_target,
             show_target_minus_signal=show_target_minus_signal,
             show_signal=show_signal,
+            autoscale=autoscale,
         )
 
         if n_fft < 2:
@@ -438,6 +442,7 @@ class PSDMetric(EvaluationMetricPlottable):
         self.show_target = show_target
         self.show_target_minus_signal = show_target_minus_signal
         self.show_signal = show_signal
+        self.autoscale = autoscale
 
     def _welch_multiple_sequences(self, signal: Sequence[NDArray]):
         """apply welch_multiple_sequences() with correct settings"""
@@ -506,9 +511,10 @@ class PSDMetric(EvaluationMetricPlottable):
                 ax, self.residual_signal, "Residual w/ signal", "C3", ls="--"
             )
 
-        ax.autoscale(
-            False
-        )  # to prevent very low values of signal from significantly altering the result plot
+        if not self.autoscale:
+            ax.autoscale(
+                False
+            )  # to prevent very low values of signal from significantly altering the result plot
         if self.show_signal and self.dataset.has_signal:
             self._plot_channel(ax, self.dataset.signal_evaluation, "Signal", "C4", zorder=9)  # type: ignore[arg-type]
 
