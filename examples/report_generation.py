@@ -1,6 +1,6 @@
 from franc.evaluation import report_generation as rg
 
-r = rg.Report()
+r = rg.LatexReport()
 
 r["first title"] = {"section 1": ["abc", "def"]}
 r["second title"] = [

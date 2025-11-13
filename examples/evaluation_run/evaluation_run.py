@@ -1,4 +1,5 @@
 import franc as fnc
+from franc.evaluation.report_generation import HTMLReport, LatexReport
 
 n_channel = 3
 
@@ -32,6 +33,7 @@ if __name__ == "__main__":
 
     # execute evaluation run
     results = eval_run.run()
-    eval_run.generate_report(results, True)
+    # eval_run.generate_report(results, True, report_type=HTMLReport)
+    eval_run.generate_report(results, True, report_type=LatexReport)
 
     print("done")

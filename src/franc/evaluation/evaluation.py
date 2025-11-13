@@ -22,7 +22,14 @@ from .dataset import EvaluationDataset
 from .metrics import EvaluationMetric, EvaluationMetricScalar, EvaluationMetricPlottable
 from .signal_generation import TestDataGenerator
 from .filter_interface import FilterInterface
-from .report_generation import Report, ReportElement, ReportTable, ReportFigure
+from .report_generation import (
+    LatexReport,
+    HTMLReport,
+    ReportElement,
+    ReportTable,
+    ReportFigure,
+    ReportCodeListing,
+)
 from ..common import hash_function_str, get_platform_info, bytes2str
 
 NDArrayF = NDArray[np.floating]
@@ -288,7 +295,8 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
 
         report_section += [
             ReportFigure(
-                str(Path("../plots") / figure_fname),
+                str(Path("plots") / figure_fname),
+                self.directory,
                 caption="Optimizaiton metric overview",
             )
         ]
@@ -349,7 +357,9 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                     fig.savefig(self.directory / "report/plots" / fname)
                     plt.close(fig)
 
-                    section.append(ReportFigure(str(Path("../plots/") / fname)))
+                    section.append(
+                        ReportFigure(str(Path("plots/") / fname), self.directory)
+                    )
 
             report_sections.append(section)
 
@@ -359,9 +369,10 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         self,
         results: list[tuple[type[FilterInterface], list]],
         compile_report: bool = False,
+        report_type: type[LatexReport] | type[HTMLReport] = LatexReport,
     ):
         """Generate a report for the given results object from run()"""
-        report = Report()
+        report = report_type()
 
         # generate overview page
         report_generation_timestamp = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
@@ -399,7 +410,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             detailed_report_entries: dict[str, list | dict | str | ReportElement] = {
                 "Overview": [
                     filter_hash,
-                    f"\\begin{{lstlisting}}{docstring}\\end{{lstlisting}}",
+                    ReportCodeListing(docstring),
                 ]
                 + parameter_scan_sections[filter_idx],
             }
@@ -426,7 +437,11 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                     ):
                         path = Path(metric.plot_path)
                         entry.append(
-                            ReportFigure("../plots/" + path.name, caption=metric.text)
+                            ReportFigure(
+                                "plots/" + path.name,
+                                self.directory,
+                                caption=metric.text,
+                            )
                         )
                     else:
                         entry.append(metric.text + "\n\n")
@@ -436,10 +451,15 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 filter_technique.filter_name + f" {filter_idx+1}"
             ] = detailed_report_entries
 
-        if compile_report:
-            report.compile(self.directory / "report" / "tex" / "report")
+        if report_type == LatexReport:
+            output_path = self.directory / "report" / "tex" / "report"
         else:
-            report.save(self.directory / "report" / "tex" / "report")
+            output_path = self.directory / "report" / "report"
+
+        if compile_report:
+            report.compile(output_path)
+        else:
+            report.save(output_path)
 
     def get_prediction(
         self, filter_technique: type[FilterInterface], conf: dict[str, Any]

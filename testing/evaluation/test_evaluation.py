@@ -7,6 +7,7 @@ from io import StringIO
 import numpy as np
 
 import franc as fnc
+from franc.evaluation.report_generation import HTMLReport
 
 from ..toolbox import calc_mean_asd
 
@@ -149,7 +150,11 @@ class TestEvaluationRun(unittest.TestCase):
 
         with redirect_stdout(StringIO()):
             results = er.run()
+
+        # latex compiling cannot be tested without
         er.generate_report(results, compile_report=False)
+        # html compilation has no effect, but running it results in better coverage
+        er.generate_report(results, compile_report=True, report_type=HTMLReport)
 
     def test_wrong_parameters(self):
         """Check that wrong parameters lead to matching errors"""
