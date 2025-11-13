@@ -270,20 +270,29 @@ class EvaluationMetricPlottable(EvaluationMetric):
         figsize: tuple[int, int] = (10, 4),
         tight_layout: bool = True,
         dpi: float = 200,
+        replot=False,
     ):
-        """Save the plot to a file"""
-        # set serif font globally for matplotlib
-        plt.rcParams["font.family"] = "serif"
+        """Save the plot to a file
 
-        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-        ax.grid(True, zorder=-1)
-        self.plot(ax)
-        if tight_layout:
-            plt.tight_layout()
-        plt.savefig(fname)
-        plt.close(fig)
-
+        :param fname: Output file name
+        :param figsize: A matplotlib figure size parameter
+        :param tight_layout: Whether to use matplotlib tight figure command
+        :param dpi: Output figure dpi value
+        :param replot: If false, no new plot will be generated if a file with the same name already exists.
+        """
         self.plot_path = fname
+
+        if replot or (not Path(fname).exists()):
+            # set serif font globally for matplotlib
+            plt.rcParams["font.family"] = "serif"
+
+            fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+            ax.grid(True, zorder=-1)
+            self.plot(ax)
+            if tight_layout:
+                plt.tight_layout()
+            plt.savefig(fname)
+            plt.close(fig)
 
     def filename(self, context: str) -> str:
         """Generate a filename that includes the given context string
