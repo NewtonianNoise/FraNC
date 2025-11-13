@@ -28,6 +28,8 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
     :param signal_conditioning: (Optional) A signal that can be subtracted from the target for performance metrics
     :param signal_evaluation: (Optional) A signal that can be subtracted from the target for performance metrics
     :param name: (Optional) a string describing the dataset
+    :param supplementary_data: (Optional) A dict with additional data passed to the evaluation metrics
+        Must be hashable (only common python built-in types and numpy arrays are allowed)
     """
 
     sample_rate: float
@@ -39,6 +41,7 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
     signal_evaluation: Sequence[NDArrayF] | None
     name: str
     target_unit: str  # unit of the target signal
+    supplementary_data: dict
 
     def __init__(
         self,
@@ -51,6 +54,7 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
         signal_evaluation: Sequence[NDArrayF] | None = None,
         name: str = "Unnamed",
         target_unit: str = "1",
+        supplementary_data: dict | None = None,
     ):
         self.sample_rate = float(sample_rate)
         (
@@ -77,6 +81,10 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
 
         if not isinstance(name, str):
             raise ValueError("name must be a string")
+
+        self.supplementary_data = (
+            supplementary_data if supplementary_data is not None else {}
+        )
 
     @staticmethod
     def _prepare_dataset(
@@ -188,7 +196,12 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
         hashes += self._hash_wts_data(
             self.witness_evaluation, self.target_evaluation, self.signal_evaluation
         )
+        hashes += hash_object_list(self.supplementary_data)
         return hash_function(hashes)
+
+    def hash_str(self) -> str:
+        """return a hash over the dataset data as a string"""
+        return bytes2str(self.hash_bytes())
 
     def __hash__(self) -> int:
         return bytes2int(self.hash_bytes())
