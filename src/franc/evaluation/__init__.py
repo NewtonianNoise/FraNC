@@ -12,6 +12,7 @@ from .metrics import (
     PSDMetric,
     TimeSeriesMetric,
     SpectrogramMetric,
+    WavePacketFitMetric,
 )
 from .evaluation import (
     EvaluationRun,
@@ -38,6 +39,7 @@ __all__ = [
     "PSDMetric",
     "TimeSeriesMetric",
     "SpectrogramMetric",
+    "WavePacketFitMetric",
     "EvaluationRun",
     "TestDataGenerator",
     "residual_power_ratio",
