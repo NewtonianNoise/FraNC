@@ -15,12 +15,14 @@ NDArrayU = NDArray[np.uint]
 
 @numba.jit
 def generate_wave_packet(
+    offset: float,
     width: float,
     amplitude: float,
     frequency: float,
     phase: float,
     generation_width: int = 10,
     peak_scaling: bool = True,
+    fixed_width: int | None = None,
 ) -> NDArrayF:
     """Generate a Gaussian wave packet. Time related parameters (width and frequency)
     can be interpreted as number of samples or seconds at a sampling rate of 1 Hz.
@@ -28,6 +30,7 @@ def generate_wave_packet(
     The amplitude normalization is chosen so that the sum of squares of the samples is one,
     so that the amplitude defines a fixed total energy of the signal.
 
+    :param offset: Timing of the wave packet (negative values shift the packet to the past)
     :param width: The standard deviation σ parameter of the hull curve
     :param amplitude: Amplitude of the signal
     :param frequency: Frequency of the sinusoidal signal component
@@ -36,9 +39,18 @@ def generate_wave_packet(
         Example: width=5 and generation_width=10 will result in 2*5*10=100+1 samples total.
     :param peak_scaling: If `True`, amplitude will determine the potential maximum value of the wave packet.
         If set to `False`, the wave packet will be scaled so that the sum of the squares of all samples is one.
+    :param fixed_width: overrides generation_width when set and sets the width to a fixed number of samples
+
+    >>> import franc
+    >>> franc.eval.signal_generation.generate_wave_packet(400, 100, 1, 0.02, 0)
+    array([-2.49881816e-53,  1.67054194e-40,  3.81228489e-40, ...,
+           -1.79993484e-05, -8.54421912e-06, -1.88708852e-19],
+          shape=(2001,))
     """
     half_length = int(np.ceil(width * generation_width))
-    T = np.arange(2 * half_length + 1) - half_length
+    if fixed_width is not None:
+        half_length = int(fixed_width)
+    T = np.arange(2 * half_length + 1) - half_length - offset
     sinusoidal = np.sin(2 * np.pi * frequency * T + phase) * np.sqrt(2)
 
     # First option: does not work with numba.jit
@@ -62,6 +74,7 @@ def generate_wave_packet_signal(
     rng: np.random.Generator,
     generation_width: int = 10,
     peak_scaling: bool = True,
+    offset_range: float | None = None,
 ) -> tuple[NDArrayF, NDArrayF]:
     """Generate a signal consisting of wave packets with `generate_wave_packet`.
     All values are generated based on uniform distributions with the given ranges.
@@ -75,6 +88,8 @@ def generate_wave_packet_signal(
     :param generator_width: How many standard deviations of the hull curve will be generated per packet
         Higher numbers will increase calculation time
     :param peak_scaling: Passed to generate_wave_packet()
+    :param offset_range: The range of time offsets generated for the wave packets
+        If no value is provided, width_range[1] is used.
 
     :return: Generated sequence, Sequence[(position, width, amplitude, frequency, phase)]
     """
@@ -82,11 +97,13 @@ def generate_wave_packet_signal(
         raise ValueError(
             "Maximum value of frequencey_range is above niquist limit of 0.5."
         )
+    offset_range = offset_range if offset_range is not None else width_range[1]
 
     # the sequence is first generated on a longer array with padding
     # this allows simpler adding of new values
     padding = int(np.ceil(width_range[1] * generation_width + 1))
 
+    offsets = rng.uniform(-offset_range, offset_range, n_wave_packets)
     positions = rng.integers(padding, n_samples + padding, n_wave_packets)
     widths = rng.uniform(*width_range, n_wave_packets)
     amplitudes = rng.uniform(*amplitude_range, n_wave_packets)
@@ -94,18 +111,23 @@ def generate_wave_packet_signal(
     phases = rng.uniform(0, 2 * np.pi, n_wave_packets)
 
     packet_properties = np.array(
-        (positions, widths, amplitudes, frequencies, phases), dtype=np.float64
+        (offsets, positions, widths, amplitudes, frequencies, phases),
+        dtype=np.float64,
     ).T
 
     sequence = np.zeros(n_samples + 2 * padding)
-    for position, width, amplitude, frequency, phase in packet_properties:
+    for offsets, position, width, amplitude, frequency, phase in packet_properties:
         packet = generate_wave_packet(
-            width, amplitude, frequency, phase, generation_width, peak_scaling
+            offsets, width, amplitude, frequency, phase, generation_width, peak_scaling
         )
 
         half_width = int(len(packet) / 2)
         position = int(position)
         sequence[position - half_width : position + half_width + 1] += packet
+
+    # correct position values for padding parameter
+    packet_properties[:, 1] -= padding
+    print("new", padding)
 
     return (sequence[padding:-padding], packet_properties)
 

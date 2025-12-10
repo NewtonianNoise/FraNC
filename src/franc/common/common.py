@@ -1,6 +1,7 @@
 """Common function for all submodules"""
 
 from types import NoneType
+from typing import Any
 from collections.abc import Sequence
 import hashlib
 import platform
@@ -62,10 +63,12 @@ def bytes2str(data: bytes) -> str:
     return b64encode(data).decode().replace("/", "|")
 
 
-def hash_function(data: bytes) -> bytes:
+def hash_function(data: bytes | np.ndarray) -> bytes:
     """The hash function used to identify similar datasets, methods, configurations, ..
     Returns a bytes object
     """
+    if isinstance(data, np.ndarray):
+        data = np.ascontiguousarray(data)
     return hashlib.sha1(data, usedforsecurity=False).digest()
 
 
@@ -83,7 +86,7 @@ def hash_function_str(data: bytes) -> str:
     return bytes2str(hash_function(data))
 
 
-def hash_object_list(objects: Sequence) -> bytes:
+def hash_object_list(objects: Sequence | dict[str, Any]) -> bytes:
     """hash objects in a list
     Will raise a TypeError if an input value has an unsupported type
     """
@@ -101,12 +104,18 @@ def hash_object_list(objects: Sequence) -> bytes:
         float: lambda x: hash_function(struct.pack("d", x)),
         np.ndarray: hash_function,
         Sequence: hash_object_list,
+        dict: hash_object_list,
         NoneType: lambda _: hash_function(b"NoneType"),
     }
 
     hashes = b""
-    for value in objects:
+    if isinstance(objects, dict):
+        objects_dict = objects
+    else:
+        objects_dict = {str(i): v for i, v in enumerate(objects)}
+    for key, value in objects_dict.items():
         success = False
+        hashes += key.encode()
         for t, handler in type_handling.items():
             if isinstance(value, t):
                 hashes += handler(value)
