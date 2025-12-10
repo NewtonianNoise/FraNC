@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "franc"
-version = "0.3.1"
+version = "0.3.2"
 description = "Evaluation framework for noise mitigation methods and implementations of different static and adaptive filtering techniques."
 readme = "README.md"
 license = "GPL-3.0-only"
