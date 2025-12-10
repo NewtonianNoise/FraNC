@@ -1,6 +1,6 @@
 [build-system]
-build-backend = "mesonpy"
-requires = ["meson-python", "ninja", "numpy >= 2.0.0"]
+requires = ["hatchling", "ninja", "numpy >= 2.0.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "franc"
