@@ -22,6 +22,7 @@ def generate_wave_packet(
     phase: float,
     generation_width: int = 10,
     peak_scaling: bool = True,
+    fixed_width: int | None = None,
 ) -> NDArrayF:
     """Generate a Gaussian wave packet. Time related parameters (width and frequency)
     can be interpreted as number of samples or seconds at a sampling rate of 1 Hz.
@@ -38,6 +39,7 @@ def generate_wave_packet(
         Example: width=5 and generation_width=10 will result in 2*5*10=100+1 samples total.
     :param peak_scaling: If `True`, amplitude will determine the potential maximum value of the wave packet.
         If set to `False`, the wave packet will be scaled so that the sum of the squares of all samples is one.
+    :param fixed_width: overrides generation_width when set and sets the width to a fixed number of samples
 
     >>> import franc
     >>> franc.eval.signal_generation.generate_wave_packet(400, 100, 1, 0.02, 0)
@@ -46,6 +48,8 @@ def generate_wave_packet(
           shape=(2001,))
     """
     half_length = int(np.ceil(width * generation_width))
+    if fixed_width is not None:
+        half_length = int(fixed_width)
     T = np.arange(2 * half_length + 1) - half_length - offset
     sinusoidal = np.sin(2 * np.pi * frequency * T + phase) * np.sqrt(2)
 
@@ -120,6 +124,10 @@ def generate_wave_packet_signal(
         half_width = int(len(packet) / 2)
         position = int(position)
         sequence[position - half_width : position + half_width + 1] += packet
+
+    # correct position values for padding parameter
+    packet_properties[:, 1] -= padding
+    print("new", padding)
 
     return (sequence[padding:-padding], packet_properties)
 

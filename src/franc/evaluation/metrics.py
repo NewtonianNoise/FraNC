@@ -19,6 +19,9 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 from scipy.signal import welch, spectrogram
+from scipy.optimize import curve_fit
+
+from franc.evaluation.signal_generation import generate_wave_packet
 
 from .dataset import EvaluationDataset
 from ..common import hash_object_list, hash_function, bytes2str
@@ -705,3 +708,143 @@ class SpectrogramMetric(EvaluationMetricPlottable):
         for section in self.residual:
             x_marker += len(section) / self.dataset.sample_rate
             plt.axvline(x_marker, c="k")
+
+
+class WavePacketFitMetric(EvaluationMetricPlottable):
+    """Attempts simple fits to Gaussian wave packets bursts in the data
+
+    Requires a matching supplementary_data field in the dataset that is called "wave_packet_parameters".
+    """
+
+    name = "Gausian wave packet fit preformance"
+
+    @EvaluationMetric.result_full_wrapper
+    def result_full(self) -> tuple[float,]:
+        parameters_eval = self.dataset.supplementary_data["wave_packet_parameters"][1]
+
+        parameters_true = []
+        parameters_fit = []
+
+        for true_parameters, signal, signal_pure in zip(
+            parameters_eval, self.residual_signal, self.dataset.signal_evaluation
+        ):
+            plt.figure()
+            plt.plot(np.arange(len(signal)) / self.dataset.sample_rate, signal)
+            # plt.plot(np.arange(len(signal))/self.dataset.sample_rate, signal_pure, c='C2', alpha=0.5)
+
+            for offset, position, width, amplitude, frequency, phase in true_parameters:
+                plt.axvspan(
+                    (position - 3 * width) / self.dataset.sample_rate,
+                    (position + 3 * width) / self.dataset.sample_rate,
+                    fc="C1",
+                    alpha=0.2,
+                )
+
+                fixed_width = np.ceil(width * 10)
+                x = np.arange(
+                    position - fixed_width, position + fixed_width + 1, dtype=int
+                )
+                y = signal[x]
+
+                def model(_xdata, offset, width, amplitude, frequency, phase):
+                    del _xdata
+                    return generate_wave_packet(
+                        offset,
+                        width,
+                        amplitude,
+                        frequency,
+                        phase,
+                        fixed_width=fixed_width,
+                    )
+
+                try:
+                    fr = curve_fit(
+                        model, x, y, p0=(offset, width, amplitude, frequency, phase)
+                    )
+                except RuntimeError:
+                    continue
+
+                parameters_true.append((offset, width, amplitude, frequency, phase))
+                parameters_fit.append(fr[0])
+
+                print()
+                print(offset, width, amplitude, frequency, phase)
+                print(fr)
+                print()
+
+                plt.plot(
+                    x / self.dataset.sample_rate,
+                    generate_wave_packet(
+                        offset,
+                        width,
+                        amplitude,
+                        frequency,
+                        phase,
+                        fixed_width=fixed_width,
+                    ),
+                    ls="--",
+                    c="C3",
+                    alpha=0.7,
+                )
+                plt.plot(
+                    x / self.dataset.sample_rate,
+                    generate_wave_packet(*fr[0], fixed_width=fixed_width),
+                    ls="--",
+                    c="C3",
+                    alpha=0.7,
+                )
+
+        parameters_true = np.array(parameters_true).T
+        parameters_fit = np.array(parameters_fit).T
+
+        for idx, parameter in enumerate(
+            ("offset", "width", "amplitude", "frequency", "phase")
+        ):
+            plt.figure()
+            plt.scatter(
+                parameters_true[idx], parameters_fit[idx] - parameters_true[idx]
+            )
+            plt.xlabel(f"True {parameter}")
+            plt.ylabel("Fit prediction error")
+            plt.axhline(0, c="k")
+            plt.grid()
+
+        plt.show()
+
+        # select relevant signal sections
+        # apply fit
+        # save results
+        return (0,)
+
+    def plot(self, ax: Axes):
+        """Plot to the given Axes object"""
+        # t = np.concatenate(self.dataset.target_evaluation)[self.start : self.stop]
+        # x = np.arange(len(t)) / self.dataset.sample_rate
+
+        # if self.show_target:
+        #     ax.plot(x, t, label="Target", rasterized=True)
+
+        # r = np.concatenate(self.result_full()[0])[self.start : self.stop]
+        # label_residual = (
+        #     "Residual w/ signal" if self.residual_with_signal else "Residual w/o signal"
+        # )
+        # ax.plot(x, r, label=label_residual, rasterized=True)
+
+        # if self.dataset.has_signal:
+        #     s = np.concatenate(self.dataset.signal_evaluation)[self.start : self.stop]  # type: ignore[arg-type]
+        #     if self.show_target_minus_signal:
+        #         ax.plot(x, t - s, label="Target - Signal", rasterized=True, ls="--")
+
+        #     if self.show_signal:
+        #         ax.plot(x, s, label="Signal", rasterized=True, ls="--")
+
+        # x_marker = 0.0
+        # for section in self.result_full()[0]:
+        #     x_marker += len(section) / self.dataset.sample_rate
+        #     plt.axvline(x_marker, c="k")
+
+        # ax.set_xlim(x[0], x[-1])
+        # ax.set_xlabel("Time [s]")
+        # ax.set_ylabel(f"Target/residual signal [{self.dataset.target_unit}]")
+
+        # ax.legend()
