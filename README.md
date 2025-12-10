@@ -16,7 +16,7 @@ From pypi: `pip install franc`
 
 From repository: `pip install .`
 
-From repository (editable): `pip install meson-python ninja && make ie`
+From repository (editable): `pip install hatchling ninja && make ie`
 
 ## License
 

@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 all: ie doc coverage linter mypy
 ie:
-	pip install --no-build-isolation -e ".[dev]"
+	pip install -e ".[dev]"
 
 test:
 	python -m unittest discover .
