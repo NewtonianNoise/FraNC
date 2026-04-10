@@ -637,7 +637,9 @@ class SpectrogramMetric(EvaluationMetricPlottable):
         :return: (spectrogram, spectrogram extent, figure_label)
             The spectrogram extent is given in the format that `matplotlib.pyplot.imshow` requires.
         """
-        residual = self.residual_signal if self.with_signal else self.residual
+        residual: NDArray | Sequence[NDArray] = (
+            self.residual_signal if self.with_signal else self.residual
+        )
         residual = np.concatenate(residual)
         f, t, Sxx = spectrogram(
             residual,
