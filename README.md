@@ -12,6 +12,10 @@ The techniques for the prediction of a correlated signal component from witness 
 
 ## Install
 
+Automated checks during the development process are only performed for `linux`.
+That makes it more likely for issues to slip through on `windows`, so switching to `linux` or `mac` might be a solution to resolve issues.
+Please open an entry on the github issue tracker if you find something that does not work.
+
 From pypi: `pip install franc`
 
 From repository: `pip install .`
