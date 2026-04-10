@@ -25,7 +25,6 @@ dependencies = [
   "icecream",
   "numba",
   "psutil ~= 5.8",
-  "spicypy ~= 0.9",
 ]
 classifiers = [
   "Programming Language :: Python :: 3",
@@ -45,6 +44,7 @@ dev = [
   "pytest >= 7.4",
   "sphinx-autoapi~=3.3",
   "sphinx-rtd-theme",
+  "spicypy ~= 0.9",
 ]
 
 [project.urls]

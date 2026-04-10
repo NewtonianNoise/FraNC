@@ -1,5 +1,10 @@
 """Wrappers for other implementations of filtering techniques."""
 
-from .spicypy_wf import SpicypyWienerFilter
+__all__ = []
 
-__all__ = ["SpicypyWienerFilter"]
+try:
+    from .spicypy_wf import SpicypyWienerFilter
+
+    __all__.append("SpicypyWienerFilter")
+except ImportError:
+    print("To use spicipy filters, install spicypy")
