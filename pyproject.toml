@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling", "ninja", "numpy >= 2.0.0"]
+requires = ["hatchling", "ninja", "numpy >= 1.26.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -19,7 +19,7 @@ authors = [
   { name = "Tim Kuhlbusch", email = "kuhlbusch@physik.rwth-aachen.de" },
 ]
 dependencies = [
-  "numpy >= 2.0.0",
+  "numpy >= 1.26.4",
   "scipy",
   "matplotlib",
   "icecream",

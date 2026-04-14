@@ -10,6 +10,7 @@ from copy import deepcopy
 import importlib.metadata
 from datetime import datetime
 import inspect
+from packaging.version import Version
 
 import numpy as np
 from numpy.typing import NDArray
@@ -212,7 +213,11 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         filename: str | Path,
     ) -> None:
         """Save a list of numpy arrays to a .npz file"""
-        np.savez(filename, allow_pickle=False, *data)
+        if Version(np.__version__[0]) < Version("2.2"):
+            # the allow_pickle parameter was introduced in numpy 2.2
+            np.savez(filename, *data)
+        else:
+            np.savez(filename, allow_pickle=False, *data)
 
     @staticmethod
     def load_np_array_list(filename: str | Path) -> Sequence[NDArrayF]:
