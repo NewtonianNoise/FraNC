@@ -8,6 +8,7 @@ import warnings
 import inspect
 import functools
 from pathlib import Path
+from packaging.version import Version
 
 import numpy as np
 from numpy.typing import NDArray
@@ -324,7 +325,11 @@ class FilterInterface(abc.ABC):
                     )
 
         # pickles are disable for security reasons
-        np.savez(filename, allow_pickle=False, **serialization_data)
+        if Version(np.__version__[0]) < Version("2.2"):
+            # the allow_pickle parameter was introduced in numpy 2.2
+            np.savez(filename, **serialization_data)
+        else:
+            np.savez(filename, allow_pickle=False, **serialization_data)
 
     @classmethod
     def load(cls: type[FilterTypeT], filename) -> FilterTypeT:
