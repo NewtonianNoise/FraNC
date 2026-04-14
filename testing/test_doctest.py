@@ -1,6 +1,8 @@
 """Load doctests in the main module as unittests"""
 
 import doctest
+import numpy as np
+
 import franc
 
 
@@ -10,6 +12,11 @@ import franc
 def load_tests(_loader, tests, _ignore):
     """load doctests as unittests"""
     tests.addTests(doctest.DocTestSuite(franc))
+
+    if np.__version__[0] == "1":
+        # skip doctests for old numpy versions
+        # as they match the recent releases
+        return tests
 
     for submodule_name in dir(franc):
         submodule = getattr(franc, submodule_name)

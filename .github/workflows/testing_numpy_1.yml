@@ -31,4 +31,3 @@ jobs:
         pip install .
         pip install numpy==1.26.4 # ensure the tests run with old numpy version
         make test
-        make -B doc # runs doctests of the documentation
