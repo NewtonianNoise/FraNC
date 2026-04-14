@@ -8,19 +8,24 @@ A framework to develop and evaluate noise cancellation techniques.
 Includes python implementations of different static and adaptive filtering techniques.
 The techniques for the prediction of a correlated signal component from witness signals provide a unified interface.
 
-[Documentation](https://franc.readthedocs.io/en/latest/)
+[Documentation](https://franc.readthedocs.io/en/latest/), [Development guide](DEVELOPMENT.md), [Contributors](CONTRIBUTORS.md)
 
 ## Install
-
-Automated checks during the development process are only performed for `linux`.
-That makes it more likely for issues to slip through on `windows`, so switching to `linux` or `mac` might be a solution to resolve issues.
-Please open an entry on the github issue tracker if you find something that does not work.
 
 From pypi: `pip install franc`
 
 From repository: `pip install .`
 
 From repository (editable): `pip install hatchling ninja && make ie`
+
+## Compatibility
+
+This package is intended to be used with a recent `numpy` release.
+Support for `numpy` back to `1.26.4` is tested and should work.
+
+Automated checks during the development process are only performed for `linux`.
+That makes it more likely for issues to slip through on `windows`, so switching to `linux` or `mac` might be a solution to resolve issues.
+Please open an entry on the github issue tracker if you find something that does not work.
 
 ## License
 
