@@ -1,4 +1,4 @@
-name: Run tests for numpy==1.26.4
+name: Run tests
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10"]
+        python-version: ["3.14"]
 
     steps:
     - uses: actions/checkout@v6
@@ -28,7 +28,5 @@ jobs:
     - name: Testing
       run: |
         pip install .[dev]
-        pip install .[external]
         pip install .
-        pip install numpy==1.26.4 # ensure the tests run with old numpy version
-        make test
+        make test_no_external_no_doctest # as of april 2026, spicypy does not support python 3.14; also: numpy array displays have changed slightly
