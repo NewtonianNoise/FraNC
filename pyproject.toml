@@ -44,8 +44,8 @@ dev = [
   "pytest >= 7.4",
   "sphinx-autoapi~=3.3",
   "sphinx-rtd-theme",
-  "spicypy ~= 0.9",
 ]
+external = ["spicypy ~= 0.9"]
 
 [project.urls]
 Repository = "https://github.com/NewtonianNoise/franc"

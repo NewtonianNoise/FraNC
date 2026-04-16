@@ -28,6 +28,7 @@ jobs:
     - name: Testing
       run: |
         pip install .[dev]
+        pip install .[external]
         pip install .
         make test
         make -B doc # runs doctests of the documentation
