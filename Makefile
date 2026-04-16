@@ -6,6 +6,11 @@ ie:
 
 test:
 	python -m unittest discover .
+test_no_external_no_doctest:
+	find testing -type f -name 'test*.py' \
+	! -path 'testing/external/*' \
+	! -path 'testing/test_doctest.py' \
+	| xargs python -m unittest
 pytest:
 	pytest --doctest-modules src/franc/
 	pytest

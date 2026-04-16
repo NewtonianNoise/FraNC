@@ -3,7 +3,7 @@
 from warnings import warn
 
 import franc
-from .test_filters import TestFilter
+from ..filtering.test_filters import TestFilter
 
 
 class TestSpicypyWienerFilter(
