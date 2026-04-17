@@ -358,7 +358,9 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                     fig.tight_layout()
 
                     # save and add to report
-                    fname = f"{filter_method.filter_name}_{parameter}_{hash}.pdf"
+                    fname = (
+                        f"{filter_method.filter_name}_{parameter}_{self.hash_str()}.pdf"
+                    )
                     fig.savefig(self.directory / "report/plots" / fname)
                     plt.close(fig)
 
