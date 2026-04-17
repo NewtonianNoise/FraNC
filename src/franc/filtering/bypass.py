@@ -76,7 +76,7 @@ class BypassFilter(FilterBase):
 
         predictions: list = []
         for w_sequence in witness:
-            prediction_sequence = np.zeros(
+            prediction_sequence: NDArray = np.zeros(
                 max(len(w_sequence[0]) - self.n_filter + 1, 0)
             )
             if pad:
