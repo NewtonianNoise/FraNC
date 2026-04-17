@@ -60,7 +60,7 @@ def bytes2int(data: bytes) -> int:
 
 def bytes2str(data: bytes) -> str:
     """Convert bytes into a base64 like string"""
-    return b64encode(data).decode().replace("/", "|")
+    return b64encode(data).decode().replace("/", "_")
 
 
 def hash_function(data: bytes | np.ndarray) -> bytes:
