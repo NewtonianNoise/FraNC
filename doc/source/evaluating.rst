@@ -71,7 +71,7 @@ The location can be changed through the `directory` parameter.
    ).dataset([int(1e4), int(1e4)], [int(1e4), int(2e4)])
    dataset.target_unit = "AU"
 
-   print('dataset hash', franc.common.hash_function_str(dataset.hash_bytes()))
+   print('dataset hash', fnc.common.hash_function_str(dataset.hash_bytes()))
  
    # define evaluation run
    filter_configurations = [
