@@ -115,6 +115,11 @@ TODO
 
 # files generated during testing
 testing/filter_serialization_test_file.*.npz
+test/*
+conditioned_filters/*
+predictions/*
+report/*
+tmp/*
 
 .vscode
 

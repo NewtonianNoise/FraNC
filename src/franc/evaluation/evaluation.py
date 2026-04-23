@@ -54,7 +54,7 @@ def measure_runtime(
     :param n_filter: Length of the FIR filters / input block size
     :param idx_target: Position of the prediction
     :param additional_filter_settings: optional settings passed to the filters
-    :param repititions: how manu repititions to perform during the timing measurement
+    :param repititions: how many repititions to perform during the timing measurement
 
     :return: (time_conditioning, time_apply) each in seconds
     """

@@ -47,7 +47,10 @@ dev = [
   "sphinx-rtd-theme",
   "pre-commit",
 ]
-external = ["spicypy ~= 0.9"]
+external = [
+  "spicypy ~= 0.9",
+  "torch",
+]
 
 [project.urls]
 Repository = "https://github.com/NewtonianNoise/franc"
