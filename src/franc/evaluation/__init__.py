@@ -24,6 +24,7 @@ from .signal_generation import (
 )
 from .report_generation import ReportElement
 from .filter_interface import FilterInterface, make_2d_array, handle_from_dict
+from .newtonian_noise_simulation import NewtonianNoiseDataGenerator
 
 __all__ = [
     "rms",
@@ -47,4 +48,5 @@ __all__ = [
     "FilterInterface",
     "make_2d_array",
     "handle_from_dict",
+    "NewtonianNoiseDataGenerator"
 ]
