@@ -45,6 +45,7 @@ dev = [
   "pytest >= 7.4",
   "sphinx-autoapi~=3.3",
   "sphinx-rtd-theme",
+  "pre-commit",
 ]
 external = ["spicypy ~= 0.9"]
 
