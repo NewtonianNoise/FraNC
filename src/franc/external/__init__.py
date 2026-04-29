@@ -7,4 +7,6 @@ try:
 
     __all__.append("SpicypyWienerFilter")
 except ImportError:
-    print("To use spicipy filters, install spicypy")
+    import warnings
+
+    warnings.warn("To use spicipy filters, install spicypy", RuntimeWarning)
