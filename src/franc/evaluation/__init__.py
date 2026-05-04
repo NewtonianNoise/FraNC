@@ -48,3 +48,15 @@ __all__ = [
     "make_2d_array",
     "handle_from_dict",
 ]
+
+try:
+    from .newtonian_noise_simulation import NewtonianNoiseDataGenerator
+
+    __all__.append("NewtonianNoiseDataGenerator")
+except ImportError:
+    import warnings
+
+    print("warn")
+    warnings.warn(
+        "To use the NewtonianNoiseDataGenerator, install torch", RuntimeWarning
+    )
