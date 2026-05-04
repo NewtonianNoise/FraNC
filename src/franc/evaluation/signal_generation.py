@@ -44,6 +44,10 @@ def generate_wave_packet(
     array([-2.49881816e-53,  1.67054194e-40,  3.81228489e-40, ...,
            -1.79993484e-05, -8.54421912e-06, -1.88708852e-19],
           shape=(2001,))
+
+
+    The defining function for `peak_scaling=False` is:
+        sinusoidal = amplitude * np.sin(2 * np.pi * frequency * T + phase) * np.sqrt(2) * np.exp(-((T / width) ** 2) / 2) * np.sqrt(2 / np.pi / width)
     """
     half_length = int(np.ceil(width * generation_width))
     T = np.arange(2 * half_length + 1) - half_length - offset
@@ -87,7 +91,13 @@ def generate_wave_packet_signal(
     :param offset_range: The range of time offsets generated for the wave packets
         If no value is provided, width_range[1] is used.
 
-    :return: Generated sequence, Sequence[(position, width, amplitude, frequency, phase)]
+    :return: Generated sequence, Sequence[(position, offset, width, amplitude, frequency, phase)]
+        position: position measures in samples from the beginning of the generated sequence (integer)
+        offset: offset of the packet relative to the position variable (float)
+        width: width of the packet
+        amplitude: amplitude of the packet
+        frequency: frequency of the packet
+        phase: phase of the packet
     """
     if frequency_range[1] > 0.5:
         raise ValueError(
@@ -99,20 +109,20 @@ def generate_wave_packet_signal(
     # this allows simpler adding of new values
     padding = int(np.ceil(width_range[1] * generation_width + 1))
 
-    offsets = rng.uniform(-offset_range, offset_range, n_wave_packets)
     positions = rng.integers(padding, n_samples + padding, n_wave_packets)
+    offsets = rng.uniform(-offset_range, offset_range, n_wave_packets)
     widths = rng.uniform(*width_range, n_wave_packets)
     amplitudes = rng.uniform(*amplitude_range, n_wave_packets)
     frequencies = rng.uniform(*frequency_range, n_wave_packets)
     phases = rng.uniform(0, 2 * np.pi, n_wave_packets)
 
     packet_properties = np.array(
-        (offsets, positions, widths, amplitudes, frequencies, phases),
+        (positions, offsets, widths, amplitudes, frequencies, phases),
         dtype=np.float64,
     ).T
 
     sequence = np.zeros(n_samples + 2 * padding)
-    for offsets, position, width, amplitude, frequency, phase in packet_properties:
+    for position, offsets, width, amplitude, frequency, phase in packet_properties:
         packet = generate_wave_packet(
             offsets, width, amplitude, frequency, phase, generation_width, peak_scaling
         )
@@ -120,6 +130,8 @@ def generate_wave_packet_signal(
         half_width = int(len(packet) / 2)
         position = int(position)
         sequence[position - half_width : position + half_width + 1] += packet
+
+    packet_properties[:, 0] -= padding
 
     return (sequence[padding:-padding], packet_properties)
 
