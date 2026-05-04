@@ -497,7 +497,7 @@ class NewtonianNoiseDataGenerator:
         if os.path.exists(folder + "/settingFile" + tag + ".txt"):
             raise NameError("better not overwrite your data!")
 
-        if randomSeed in [None, "none"]:
+        if randomSeed not in [None, "none"]:
             rd.seed(randomSeed)
             np.random.seed(randomSeed)
 
