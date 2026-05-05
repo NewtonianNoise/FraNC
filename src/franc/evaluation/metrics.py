@@ -253,7 +253,7 @@ class EvaluationMetricScalar(EvaluationMetric):
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
         """String indicating the evaluation result"""
         # this default implementation works for floats
-        return f"{cls.name}: {self._format_float(result_full[0])}"
+        return f"{cls.name}: {cls._format_float(result_full[0])}"
 
 
 class EvaluationMetricPlottable(EvaluationMetric):
@@ -346,6 +346,44 @@ class MSEMetric(EvaluationMetricScalar):
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
         return f"{cls.name}: {cls._format_float(result_full[0])} {result_full[1]}"
+
+
+class RMetric(EvaluationMetricScalar):
+    """Residual power ratio"""
+
+    name = "R"
+
+    @EvaluationMetric.result_full_wrapper
+    def result_full(self) -> tuple[np.floating | float]:
+        if self.dataset.signal_evaluation is not None:
+            mse_pre = np.mean(
+                np.square(
+                    np.concatenate(
+                        [
+                            t - s
+                            for t, s in zip(
+                                self.dataset.target_evaluation,
+                                self.dataset.signal_evaluation,
+                            )
+                        ]
+                    )
+                )
+            )
+        else:
+            mse_pre = np.mean(np.square(np.concatenate(self.dataset.target_evaluation)))
+        R = np.mean(np.square(np.concatenate(self.residual))) / mse_pre
+        return (R,)
+
+
+class SqrtRMetric(RMetric):
+    """Square root of the residual power ratio"""
+
+    name = "√R"
+
+    @EvaluationMetric.result_full_wrapper
+    def result_full(self) -> tuple[np.floating | float]:
+        return_value = super().result_full()
+        return (np.sqrt(return_value[0]),)
 
 
 class BandwidthPowerMetric(EvaluationMetricScalar):
