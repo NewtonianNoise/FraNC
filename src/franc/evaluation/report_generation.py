@@ -211,6 +211,13 @@ class Report(dict, abc.ABC):
         return fname
 
 
+def _escape_latex_chars(inp: str):
+    special_chars = r"\\&%$#_{}~^"
+    for sc in special_chars:
+        inp = inp.replace(sc, "\\" + sc)
+    return inp
+
+
 class LatexReport(Report):
     """Latex code generator"""
 
@@ -256,7 +263,7 @@ postbreak=\mbox{{$\hookrightarrow$}\space},
     def _generate_entry(entry):
         """Generate latex code for the given entry"""
         if isinstance(entry, str):
-            return entry + "\n"
+            return _escape_latex_chars(entry) + "\n"
         if isinstance(entry, ReportElement):
             return entry.latex() + "\n"
         raise ValueError(
