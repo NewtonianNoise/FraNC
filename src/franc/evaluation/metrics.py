@@ -488,6 +488,8 @@ class PSDMetric(
         self.show_signal = show_signal
         self.autoscale = autoscale
 
+        self.do_asd = False
+
     def _welch_multiple_sequences(self, signal: Sequence[NDArray]):
         """apply welch_multiple_sequences() with correct settings"""
         return welch_multiple_sequences(
@@ -501,6 +503,8 @@ class PSDMetric(
     @EvaluationMetric.result_full_wrapper
     def result_full(self) -> tuple[NDArray, NDArray, NDArray, NDArray]:
         f, S_rr, S_rr_min, S_rr_max = self._welch_multiple_sequences(self.residual)
+        if self.do_asd:
+            return (np.sqrt(S_rr), f, np.sqrt(S_rr_min), np.sqrt(S_rr_max))
         return (S_rr, f, S_rr_min, S_rr_max)
 
     def _plot_channel(
@@ -564,7 +568,29 @@ class PSDMetric(
 
         # labels
         ax.set_xlabel("Frequency [Hz]")
-        ax.set_ylabel(f"PSD [({self.dataset.target_unit})$^2$/Hz]")
+        if self.do_asd:
+            ax.set_ylabel(f"PSD [({self.dataset.target_unit})/√Hz]")
+        else:
+            ax.set_ylabel(f"PSD [({self.dataset.target_unit})$^2$/Hz]")
+
+
+class ASDMetric(PSDMetric):  # pylint: disable=too-many-instance-attributes
+    """Plots the ASD of the given signal.
+    For details, check the PSDMetric definition.
+    """
+
+    name = "Amplitude spectral density"
+
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+        self.do_asd = True
 
 
 class TimeSeriesMetric(EvaluationMetricPlottable):
