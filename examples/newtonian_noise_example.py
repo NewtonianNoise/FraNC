@@ -10,7 +10,7 @@ try:
     generator.generateEventSet(tag="train")
     generator.generateEventSet(tag="test")
 except NameError:
-    pass
+    print("Loading old dataset. Nothing new was generated!")
 
 witness_conditioning, target_conditioning = generator.generateDataset(tag="train")
 witness_evaluation, target_evaluation = generator.generateDataset(tag="test")
@@ -18,7 +18,7 @@ witness_evaluation, target_evaluation = generator.generateDataset(tag="test")
 print("witness shapes", [i.shape for i in witness_conditioning])
 print("target shapes", [i.shape for i in target_conditioning])
 
-sampling_rate = generator.default_tmax / generator.default_Nt
+sampling_rate = generator.default_Nt / generator.default_tmax
 
 # create the dataset object
 dataset = franc.evaluation.EvaluationDataset(
@@ -27,4 +27,5 @@ dataset = franc.evaluation.EvaluationDataset(
     target_conditioning,
     witness_evaluation,
     target_evaluation,
+    target_unit="N",
 )
