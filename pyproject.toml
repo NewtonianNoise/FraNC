@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "franc"
-version = "0.3.6"
+version = "0.3.7"
 description = "Evaluation framework for noise mitigation methods and implementations of different static and adaptive filtering techniques."
 readme = "README.md"
 license = "GPL-3.0-only"
@@ -47,10 +47,7 @@ dev = [
   "sphinx-rtd-theme",
   "pre-commit",
 ]
-external = [
-  "spicypy ~= 0.9",
-  "torch",
-]
+external = ["spicypy ~= 0.9", "torch"]
 
 [project.urls]
 Repository = "https://github.com/NewtonianNoise/franc"
