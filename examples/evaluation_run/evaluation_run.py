@@ -28,7 +28,12 @@ if __name__ == "__main__":
         ],
         dataset,
         fnc.eval.RMSMetric(),
-        [fnc.eval.MSEMetric(), fnc.eval.PSDMetric(), fnc.eval.TimeSeriesMetric()],
+        [
+            fnc.eval.MSEMetric(),
+            fnc.eval.SqrtRMetric(),
+            fnc.eval.ASDMetric(),
+            fnc.eval.TimeSeriesMetric(),
+        ],
     )
 
     # execute evaluation run

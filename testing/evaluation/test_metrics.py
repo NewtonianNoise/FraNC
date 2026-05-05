@@ -101,6 +101,30 @@ class TestMSEMetric(TestEvaluationMetric.TestEvaluationMetric):
         self.set_tested_metric(fnc.evaluation.MSEMetric, [{}])
 
 
+class TestRMetric(TestEvaluationMetric.TestEvaluationMetric):
+    """Tests for RMetric"""
+
+    __test__ = True
+
+    expected_results = [1.9563013885714056]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.set_tested_metric(fnc.evaluation.RMetric, [{}])
+
+
+class TestSqrtRMetric(TestEvaluationMetric.TestEvaluationMetric):
+    """Tests for SqrtRMetric"""
+
+    __test__ = True
+
+    expected_results = [1.3986784435928816]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.set_tested_metric(fnc.evaluation.SqrtRMetric, [{}])
+
+
 class TestBandwidthPowerMetric(TestEvaluationMetric.TestEvaluationMetric):
     """Tests for BandwidthPowerMetric"""
 
@@ -143,6 +167,29 @@ class TestPSDMetric(TestEvaluationMetric.TestEvaluationMetric):
     def test_low_n_fft(self):
         """Check that a too low n_fft value creates raises an exception"""
         self.assertRaises(ValueError, self.tested_metric, n_fft=1)
+
+
+class TestASDMetric(TestPSDMetric):
+    """Tests for ASDMetric"""
+
+    __test__ = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.set_tested_metric(
+            fnc.evaluation.ASDMetric,
+            [
+                {"n_fft": 15},
+                {
+                    "n_fft": 16,
+                    "logx": False,
+                    "logy": False,
+                    "window": "boxcar",
+                    "show_signal": True,
+                },
+                {"n_fft": 15, "show_target_minus_signal": True},
+            ],
+        )
 
 
 class TestTimeSeriesMEtric(TestEvaluationMetric.TestEvaluationMetric):

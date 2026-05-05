@@ -12,6 +12,7 @@ from .metrics import (
     SqrtRMetric,
     BandwidthPowerMetric,
     PSDMetric,
+    ASDMetric,
     TimeSeriesMetric,
     SpectrogramMetric,
 )
@@ -40,6 +41,7 @@ __all__ = [
     "SqrtRMetric",
     "BandwidthPowerMetric",
     "PSDMetric",
+    "ASDMetric",
     "TimeSeriesMetric",
     "SpectrogramMetric",
     "EvaluationRun",
