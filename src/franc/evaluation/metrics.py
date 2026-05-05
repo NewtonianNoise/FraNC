@@ -243,11 +243,17 @@ class EvaluationMetricScalar(EvaluationMetric):
         """The raw data of the result"""
         return self.result_full()[0]
 
+    @staticmethod
+    def _format_float(number):
+        if number > 1e-4:
+            return f"{number:f}"
+        return f"{number:e}"
+
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
         """String indicating the evaluation result"""
         # this default implementation works for floats
-        return f"{cls.name}: {result_full[0]:f}"
+        return f"{cls.name}: {self._format_float(result_full[0])}"
 
 
 class EvaluationMetricPlottable(EvaluationMetric):
@@ -318,7 +324,7 @@ class RMSMetric(EvaluationMetricScalar):
 
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
-        return f"{cls.name}: {result_full[0]:f} {result_full[1]}"
+        return f"{cls.name}: {cls._format_float(result_full[0])} {result_full[1]}"
 
 
 class MSEMetric(EvaluationMetricScalar):
@@ -339,7 +345,7 @@ class MSEMetric(EvaluationMetricScalar):
 
     @classmethod
     def result_to_text(cls, result_full: tuple[float | np.floating, ...]) -> str:
-        return f"{cls.name}: {result_full[0]:f} {result_full[1]}"
+        return f"{cls.name}: {cls._format_float(result_full[0])} {result_full[1]}"
 
 
 class BandwidthPowerMetric(EvaluationMetricScalar):
