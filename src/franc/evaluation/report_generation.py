@@ -5,6 +5,14 @@ from collections.abc import Sequence
 from pathlib import Path
 import base64
 import subprocess
+import html as html_module
+
+
+def html_escape(inp: str):
+    """prepare a string for being put into an html element"""
+    escaped = html_module.escape(inp)
+    escaped = escaped.encode("ascii", "xmlcharrefreplace").decode()
+    return escaped
 
 
 class ReportElement(abc.ABC):  # pylint: disable=too-few-public-methods
@@ -52,7 +60,7 @@ class ReportFigure(ReportElement):  # pylint: disable=too-few-public-methods
 
     def html(self) -> str:
         caption = (
-            f"<figcaption>{self.caption}</figcaption>"
+            f"<figcaption>{html_escape(self.caption)}</figcaption>"
             if self.caption is not None
             else ""
         )
@@ -145,13 +153,13 @@ class ReportTable(ReportElement):  # pylint: disable=too-few-public-methods
 
     def html(self) -> str:
         caption = (
-            f"<figcaption>{self.caption}</figcaption>"
+            f"<figcaption>{html_escape(self.caption)}</figcaption>"
             if self.caption is not None
             else ""
         )
         table_content_str = ""
         for row in self.table_content:
-            row = [f"    <th>{cell_value}</th>" for cell_value in row]
+            row = [f"    <th>{html_escape(cell_value)}</th>" for cell_value in row]
             table_content_str += "  <tr>\n" + "\n".join(row) + "\n  </tr>\n"
 
         return (
@@ -348,7 +356,7 @@ class HTMLReport(Report):
     def _generate_entry(entry):
         """Generate latex code for the given entry"""
         if isinstance(entry, str):
-            return "<p>" + entry.replace("\n", "<br/>\n") + "</p>\n"
+            return "<p>" + html_escape(entry).replace("\n", "<br/>\n") + "</p>\n"
         if isinstance(entry, ReportElement):
             return entry.html() + "\n"
         raise ValueError(
