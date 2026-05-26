@@ -1,5 +1,7 @@
 """Tooling to generate pdf reports through latex"""
 
+from __future__ import annotations
+
 import abc
 from collections.abc import Sequence
 from pathlib import Path

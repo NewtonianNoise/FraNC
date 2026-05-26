@@ -6,6 +6,8 @@ Created on Tue Jan 27 12:45:15 2026
 @author: schillings
 """
 
+from __future__ import annotations
+
 import math
 import time as systime
 import os

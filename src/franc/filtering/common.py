@@ -1,5 +1,7 @@
 """Shared functionality for all filtering techniques"""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from ..evaluation import FilterInterface, make_2d_array, handle_from_dict

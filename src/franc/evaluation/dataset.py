@@ -1,5 +1,7 @@
 """A representation of a dataset for the evaluation of noise mitigation methods."""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from dataclasses import dataclass
 import struct

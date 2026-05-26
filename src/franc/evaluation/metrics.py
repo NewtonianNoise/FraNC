@@ -115,7 +115,7 @@ class EvaluationMetric(abc.ABC):
 
         return wrapper
 
-    @init_wrapper
+    @init_wrapper.__func__  # type: ignore
     def __init__(self, **kwargs):
         """Placeholder init function to ensure a hash is calculated"""
         del kwargs  # mark as unused

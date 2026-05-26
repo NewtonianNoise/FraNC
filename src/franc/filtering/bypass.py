@@ -1,5 +1,7 @@
 """A filtering method that does conditioning"""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from dataclasses import dataclass
 

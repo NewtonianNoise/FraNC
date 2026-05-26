@@ -2,6 +2,8 @@
 This is intended to allow comparisons between the implementations.
 """
 
+from __future__ import annotations
+
 from typing import overload
 from collections.abc import Sequence
 from contextlib import redirect_stdout

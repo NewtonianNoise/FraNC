@@ -1,5 +1,7 @@
 """Shared functionality and interface for all filtering techniques"""
 
+from __future__ import annotations
+
 from typing import TypeVar, Any, overload
 from collections.abc import Sequence, Callable
 import abc

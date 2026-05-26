@@ -1,5 +1,7 @@
 """Classical static Wiener filter"""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from dataclasses import dataclass
 from warnings import warn
