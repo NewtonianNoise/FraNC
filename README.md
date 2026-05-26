@@ -16,7 +16,8 @@ From pypi: `pip install franc`
 
 From repository: `pip install .`
 
-From repository (editable): `pip install hatchling ninja && make ie`
+You can install all optional dependencies at once by adding `[external]`: `pip install "franc[external]"` or `pip install ".[external]"`.
+The quotation marks are needed on many platforms to prevent the square brackets from being interpreted by the terminal application.
 
 ## Compatibility
 
