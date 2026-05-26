@@ -1,5 +1,7 @@
 """Tools to generate test data and EvaluationDatasets"""
 
+from __future__ import annotations
+
 from typing import Any
 from collections.abc import Sequence
 

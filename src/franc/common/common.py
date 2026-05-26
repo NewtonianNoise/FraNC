@@ -1,6 +1,8 @@
 """Common function for all submodules"""
 
-from types import NoneType
+from __future__ import annotations
+
+import sys
 from typing import Any
 from collections.abc import Sequence
 import hashlib
@@ -11,6 +13,11 @@ from base64 import b64encode
 import warnings
 
 import numpy as np
+
+if sys.version_info.major == 3 and sys.version_info.minor >= 10:
+    from types import NoneType  # pylint: disable=ungrouped-imports
+else:
+    NoneType = type(None)  # type: ignore # pylint: disable=invalid-name
 
 
 #########################

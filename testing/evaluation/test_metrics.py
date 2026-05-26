@@ -1,5 +1,7 @@
 """Tests for EvaluationMetric classes"""
 
+from __future__ import annotations
+
 from typing import Generator, Type
 import unittest
 from collections.abc import Sequence

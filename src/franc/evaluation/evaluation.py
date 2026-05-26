@@ -1,5 +1,7 @@
 """Collection of tools for the evaluation and testing of filters"""
 
+from __future__ import annotations
+
 from typing import Any
 from collections.abc import Sequence
 import sys
