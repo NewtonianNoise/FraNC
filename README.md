@@ -16,17 +16,23 @@ From pypi: `pip install franc`
 
 From repository: `pip install .`
 
-You can install all optional dependencies at once by adding `[external]`: `pip install "franc[external]"` or `pip install ".[external]"`.
+You can install all optional dependencies at once by adding `[external]`:
+
+* `pip install "franc[external]"`
+* `pip install ".[external]"`
+
 The quotation marks are needed on many platforms to prevent the square brackets from being interpreted by the terminal application.
 
 ## Compatibility
 
-This package is intended to be used with a recent `numpy` release.
-Support for `numpy` back to `1.26.4` is tested and should work.
+We are trying to support this package on a variety of platforms and python releases. The current supported python versions can e.g. be found on the bottom left of the [pypi page](https://pypi.org/project/franc/).
 
 Automated checks during the development process are only performed for `linux`.
 That makes it more likely for issues to slip through on `windows`, so switching to `linux` or `mac` might be a solution to resolve issues.
 Please open an entry on the github issue tracker if you find something that does not work.
+
+This package is intended to be used with a recent `numpy` release (meaning version 2).
+Support for `numpy` back to `1.26.4` is tested and should work.
 
 ## License
 
