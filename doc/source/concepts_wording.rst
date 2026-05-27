@@ -8,8 +8,9 @@ The following overview summarizes the underlying data processing model of this f
 
 .. image:: data_model.svg
 
-* Noise cancellation methods are called filters to have a shorter name
-* The goal of the filters is to make an as good as possible `prediction` of the `disturbance` channel based on the `target` and `witness` signals.
+* Noise cancellation methods are called `filters` to have a shorter name
+* The goal of the `filters` is to make an as good as possible `prediction` of the `disturbance` channel based on the `target` and `witness` signals.
+* For that, the ideal `filter` is calculated from a `conditioning` dataset (comparable to a training dataset in machine learning) and then applied to a `evaluation` dataset (comparable to a test dataset) to analyze its performance. The `conditioning` and `evaluation` datasets are independent of each other, i.e. they contain different realizations of the signals.
 * A dataset defines a set of signals that can be used to test filtering techniques
 
   * Each `dataset` contains one `target` channel, one or multiple `witness` channels and optionally one `GW signals` channel
