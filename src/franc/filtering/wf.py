@@ -8,6 +8,7 @@ from warnings import warn
 
 import numpy as np
 from numpy.typing import NDArray
+import scipy
 from scipy.signal import correlate
 
 from .common import FilterBase, make_2d_array, handle_from_dict, pad_prediction
@@ -35,6 +36,7 @@ def wf_calculate(
     target: Sequence | NDArray,
     n_filter: int,
     idx_target: int = 0,
+    inversion_method: str = "np_pinv",
 ) -> tuple[NDArray, bool]:
     """caluclate the FIR coefficients for a wiener filter
 
@@ -42,6 +44,8 @@ def wf_calculate(
     :param witness: Target sensor data
     :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
     :param idx_target: offset of the prediction relative to the end of the array
+    :param inversion_method: matrix inversion method used for filter coefficient calculation. Check WienerFilter class dock string for possible values
+
 
     :return: filter coefficients, full_rank (bool)
     """
@@ -96,8 +100,25 @@ def wf_calculate(
 
     # calculate pseudo-inverse correlation matrix of inputs and the filter coefficients
     # for some reason the scipy.linalg implementations were extremely slow on white noise test case => using numpy
-    full_rank = bool(np.linalg.matrix_rank(R_ww, hermitian=True) == len(R_ww[0]))
-    R_ww_inv = np.linalg.pinv(R_ww, hermitian=True)
+    matrix_rank = np.linalg.matrix_rank(R_ww, hermitian=True)
+    full_rank = bool(matrix_rank == len(R_ww[0]))
+    try:
+        if inversion_method == "np_pinv":
+            R_ww_inv = np.linalg.pinv(R_ww, hermitian=True)
+        elif inversion_method == "np_inv":
+            R_ww_inv = np.linalg.inv(R_ww)
+        elif inversion_method == "sp_pinv":
+            R_ww_inv = scipy.linalg.pinvh(R_ww)
+        elif inversion_method == "sp_inv":
+            R_ww_inv = scipy.linalg.inv(R_ww)
+        else:
+            raise ValueError(f"Undefined inversion_method value {inversion_method}")
+    except np.linalg.LinAlgError as e:
+        print(
+            f"{len(R_ww[0])}x{len(R_ww[0])} input cross correlation matrix is of rank {matrix_rank}"
+        )
+        print(R_ww)
+        raise e
     WFC = R_ww_inv.dot(np.array(R_ws))
 
     # unwrap into seperate FIR filters
@@ -137,6 +158,11 @@ class WienerFilter(FilterBase):
     :param n_channel: Number of witness sensor channels
     :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
     :param idx_target: Position of the prediction
+    :param inversion_method: Matrix inversion method used for filter coefficient calculation
+        'np_pinv' np.linalg.pinv()
+        'np_inv' np.linalg.inv()
+        'sp_pinv' scipy.linalg.pinv()
+        'sp_inv' scipy.linalg.inv()
 
     >>> import franc as fnc
     >>> n_filter = 128
@@ -155,6 +181,7 @@ class WienerFilter(FilterBase):
     #: The FIR coefficients of the WF
     filter_state: NDArray | None = None
     filter_name: str = "WF"
+    inversion_method: str = "np_pinv"
 
     @handle_from_dict
     def __init__(
@@ -162,9 +189,11 @@ class WienerFilter(FilterBase):
         n_channel: int,
         n_filter: int,
         idx_target: int,
+        inversion_method: str = "np_pinv",
     ):
         super().__init__(n_channel, n_filter, idx_target)
         self.requires_apply_target = False
+        self.inversion_method = inversion_method
 
     def condition_multi_sequence(
         self,
@@ -185,7 +214,11 @@ class WienerFilter(FilterBase):
         norm = 0
         for witness_npy_i, target_npy_i in zip(witness_npy, target_npy):
             fc, full_rank_i = wf_calculate(
-                witness_npy_i, target_npy_i, self.n_filter, idx_target=self.idx_target
+                witness_npy_i,
+                target_npy_i,
+                self.n_filter,
+                idx_target=self.idx_target,
+                inversion_method=self.inversion_method,
             )
             full_rank &= full_rank_i
             filter_coefficients.append(fc * len(target_npy_i))
