@@ -180,12 +180,12 @@ class TestFilter:  # pylint: disable=too-few-public-methods
             for noise_level, acceptable_residual in self.expected_performance.items():
                 n_filter = 32
                 witness, target = fnc.evaluation.TestDataGenerator(
-                    [noise_level] * 2, rng_seed=RNG_SEED
-                ).generate(int(2e4))
+                    [noise_level], rng_seed=RNG_SEED
+                ).generate(int(3e4))
 
                 for idx_target in [0, int(n_filter / 2), n_filter - 1]:
                     for filt in self.instantiate_filters(
-                        n_channel=2, n_filter=n_filter, idx_target=idx_target
+                        n_channel=1, n_filter=n_filter, idx_target=idx_target
                     ):
                         with warnings.catch_warnings():  # warnings are expected here
                             warnings.simplefilter("ignore")

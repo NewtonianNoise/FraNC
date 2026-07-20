@@ -15,7 +15,13 @@ class TestWienerFilter(TestFilter.TestFilter[WienerFilter]):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.set_target(fnc.filtering.WienerFilter)
+        test_configurations = [
+            {"inversion_method": "np_pinv"},
+            {"inversion_method": "np_inv"},
+            {"inversion_method": "sp_pinv"},
+            {"inversion_method": "sp_inv"},
+        ]
+        self.set_target(fnc.filtering.WienerFilter, test_configurations)
 
     def test_conditioning_warning(self):
         """check that a warning is thrown if the autocorrelation array does not have full rank"""
