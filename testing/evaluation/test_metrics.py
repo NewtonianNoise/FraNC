@@ -292,3 +292,14 @@ class TestSpectrogramMetric(TestEvaluationMetric.TestEvaluationMetric):
                 {"n_fft": 64, "with_signal": False, "asd": False},
             ],
         )
+
+
+class TestMetricHashing(unittest.TestCase):
+    """Tests for the metric hash values"""
+
+    def test_hash_differs_between_metric_classes(self):
+        """check that metrics defined in the same file with equal parameters differ"""
+        self.assertNotEqual(
+            fnc.evaluation.RMSMetric().method_hash,
+            fnc.evaluation.MSEMetric().method_hash,
+        )

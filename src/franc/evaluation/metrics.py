@@ -107,7 +107,11 @@ class EvaluationMetric(abc.ABC):
             self.parameters = {key: kwargs[key] for key in sorted(kwargs)}
 
             # calculate method hash
+            # qualified class name is included to prevent collisions of metrics defined in the same file
             hashes = self._file_hash()  # pylint: disable=[protected-access]
+            hashes += hash_function(
+                f"{type(self).__module__}.{type(self).__qualname__}".encode()
+            )
             hashes += hash_object_list(list(self.parameters.keys()))
             hashes += hash_object_list(list(self.parameters.values()))
             self.method_hash_value = hash_function(hashes)
