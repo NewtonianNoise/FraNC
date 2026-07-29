@@ -79,6 +79,22 @@ class TestResidualAmplitudeRatio(unittest.TestCase):
             np.sqrt(2),
         )
 
+    def test_dc_removal_uses_windowed_mean(self):
+        """remove_dc must subtract the mean of the start:stop window,
+        not the mean of the full target array, when a sub-window is selected."""
+        # target has a very different mean outside [5:7] than inside it
+        target = np.array([0, 0, 0, 0, 0, 6, 8], dtype=float)
+        b = np.array([np.sqrt(0.5), -np.sqrt(0.5)])
+        prediction = np.zeros(7)
+        prediction[5:7] = target[5:7] + b
+
+        self.assertAlmostEqual(
+            fnc.evaluation.residual_amplitude_ratio(
+                target, prediction, start=5, stop=7, remove_dc=True
+            ),
+            np.sqrt(0.5),
+        )
+
 
 class TestMeasureRuntime(unittest.TestCase):
     """tests for residual_amplitude_ratio() and indirectly for residual_power_ratio()"""
