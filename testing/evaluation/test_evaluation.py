@@ -3,6 +3,8 @@
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
+import tempfile
+from pathlib import Path
 
 import numpy as np
 
@@ -138,6 +140,46 @@ class TestEvaluationRun(unittest.TestCase):
             )
         ]
         return dataset, method_configurations
+
+    def test_prediction_caching(self):
+        """get_prediction() must return identical predictions whether it computes
+        fresh, reloads a saved filter, or reloads a saved prediction directly."""
+        n_channel = 2
+        dataset, method_configurations = self.generate_configuration(n_channel)
+        filter_technique, configurations = method_configurations[0]
+        conf = configurations[0]  # already includes n_channel
+
+        with tempfile.TemporaryDirectory() as directory:
+            er = fnc.evaluation.EvaluationRun(
+                method_configurations,
+                dataset,
+                fnc.evaluation.RMSMetric(),
+                directory=directory,
+            )
+
+            out = StringIO()
+            with redirect_stdout(out):
+                pred_fresh, _, result_filename = er.get_prediction(
+                    filter_technique, conf
+                )
+            self.assertIn("ran conditioning and calculated prediction", out.getvalue())
+
+            (Path(directory) / "predictions" / (result_filename + ".npz")).unlink()
+            out = StringIO()
+            with redirect_stdout(out):
+                pred_from_filter, _, _ = er.get_prediction(filter_technique, conf)
+            self.assertIn("calculated from loaded filter", out.getvalue())
+
+            out = StringIO()
+            with redirect_stdout(out):
+                pred_cached, _, _ = er.get_prediction(filter_technique, conf)
+            self.assertIn("loaded from file", out.getvalue())
+
+        for p_fresh, p_from_filter, p_cached in zip(
+            pred_fresh, pred_from_filter, pred_cached
+        ):
+            np.testing.assert_array_equal(p_fresh, p_from_filter)
+            np.testing.assert_array_equal(p_fresh, p_cached)
 
     def test_functionality(self):
         """Check basic functionality"""
