@@ -426,8 +426,8 @@ class BandwidthPowerMetric(EvaluationMetricScalar):
             scaling="density",
         )
 
-        start_idx = np.argmin(f - self.f_start)
-        stop_idx = np.argmin(f - self.f_stop)
+        start_idx = np.argmin(np.abs(f - self.f_start))
+        stop_idx = np.argmin(np.abs(f - self.f_stop))
         df = f[1] - f[0]
         power = np.sum(S_rr[start_idx : stop_idx + 1]) * df
 

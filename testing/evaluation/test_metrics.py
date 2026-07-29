@@ -144,6 +144,37 @@ class TestBandwidthPowerMetric(TestEvaluationMetric.TestEvaluationMetric):
             ],
         )
 
+    def test_band_selection(self):
+        """A pure tone must be picked up by a metric whose band contains it,
+        and not by a metric configured for a disjoint band."""
+        sample_rate = 100.0
+        n = 2000
+        t = np.arange(n) / sample_rate
+        f0 = 20.0
+        target = np.zeros(n)
+        # residual = target - prediction = sin(2*pi*f0*t), a pure tone at f0
+        prediction = -np.sin(2 * np.pi * f0 * t)
+
+        dataset = fnc.evaluation.EvaluationDataset(
+            sample_rate=sample_rate,
+            witness_conditioning=[[np.zeros(n)]],
+            target_conditioning=[np.zeros(n)],
+            witness_evaluation=[[np.zeros(n)]],
+            target_evaluation=[target],
+        )
+
+        in_band = fnc.evaluation.BandwidthPowerMetric(
+            f_start=f0 - 5, f_stop=f0 + 5, n_fft=256
+        ).apply([prediction], dataset)
+        out_of_band = fnc.evaluation.BandwidthPowerMetric(
+            f_start=f0 + 15, f_stop=f0 + 25, n_fft=256
+        ).apply([prediction], dataset)
+
+        # a unit-amplitude sine has mean power 0.5; the in-band metric must recover it
+        self.assertAlmostEqual(in_band.result, 0.5, places=2)
+        # the disjoint band excludes the tone entirely, so it must see none of that power
+        self.assertLess(out_of_band.result, 1e-6)
+
 
 class TestPSDMetric(TestEvaluationMetric.TestEvaluationMetric):
     """Tests for PSDMetric"""
