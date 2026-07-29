@@ -301,6 +301,17 @@ class FilterInterface(abc.ABC):
         except Exception as e:
             raise ValueError("Non-compatible dictionary, could not load filter.") from e
 
+        # np.load() returns every scalar as a 0 dimensional array, convert those back
+        # into the python types the fields are declared with
+        clean_dict = {
+            key: (
+                value.item()
+                if isinstance(value, np.ndarray) and value.ndim == 0
+                else value
+            )
+            for key, value in clean_dict.items()
+        }
+
         if not hasattr(cls, "filter_name"):
             raise ValueError("From_dict cannot be used on an unnamed filter class.")
         if cls.filter_name != clean_dict["filter_name"]:  # pylint: disable=no-member
@@ -334,6 +345,14 @@ class FilterInterface(abc.ABC):
         serialization_data = self.as_dict()
         filename = self.make_filename(filename)
 
+        # None can only be stored by np.savez() as a pickled object array
+        unset_fields = [k for k, v in serialization_data.items() if v is None]
+        if unset_fields:
+            raise RuntimeError(
+                f"The values of {', '.join(unset_fields)} are not set. "
+                "The filter must be conditioned before it can be saved."
+            )
+
         # this is intended to quickly identify problematic values when developing a new filter
         if warn_incompatible:
             for k, v in serialization_data.items():
@@ -342,8 +361,15 @@ class FilterInterface(abc.ABC):
                         f">> Potentially incompatible with numpy.save(pickle=False) {k}: {v}"
                     )
 
+        # numpy strips trailing null bytes from its bytes dtype, which corrupts hash
+        # values. np.void() stores the raw bytes with their exact length instead.
+        serialization_data = {
+            key: np.void(value) if isinstance(value, bytes) else value
+            for key, value in serialization_data.items()
+        }
+
         # pickles are disable for security reasons
-        if Version(np.__version__[0]) < Version("2.2"):
+        if Version(np.__version__) < Version("2.2"):
             # the allow_pickle parameter was introduced in numpy 2.2
             np.savez(filename, **serialization_data)
         else:

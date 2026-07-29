@@ -225,6 +225,8 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                         filt.method_hash,
                         loaded_filter.method_hash,
                     )
+                    # scalar values must not come back as 0 dimensional arrays
+                    self.assertIsInstance(loaded_filter.method_hash, bytes)
 
                     prediction_orig = filt.apply(witness, target)
                     prediction_loaded = loaded_filter.apply(witness, target)
@@ -237,6 +239,39 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                     self.assertRaises(
                         NotImplementedError, self.target_filter.load, TEST_FILE
                     )
+
+        def test_save_with_unset_values(self):
+            """Check that saving a filter with unset values raises instead of writing a pickle"""
+            for filt in self.instantiate_filters(n_channel=2, n_filter=32):
+                # only filters that leave a value unset until conditioning are affected
+                # "is None" is required, as "in" would compare against the state arrays
+                if not filt.supports_saving_loading() or not any(
+                    value is None for value in filt.as_dict().values()
+                ):
+                    continue
+
+                self.assertRaises(RuntimeError, filt.save, TEST_FILE)
+
+        def test_hash_with_trailing_null_bytes(self):
+            """Check that saving does not truncate a hash value ending in a null byte"""
+            witness, target = fnc.evaluation.TestDataGenerator(
+                [0.1] * 2, rng_seed=RNG_SEED
+            ).generate(int(1e3))
+            hash_value = b"\x01" + b"\x00" * 19
+
+            for filt in self.instantiate_filters(n_channel=2, n_filter=32):
+                if not filt.supports_saving_loading():
+                    continue
+
+                with warnings.catch_warnings():  # warnings are expected here
+                    warnings.simplefilter("ignore")
+                    filt.condition(witness, target)
+                filt.method_hash_value = hash_value
+                filt.save(TEST_FILE)
+
+                self.assertEqual(
+                    self.target_filter.load(TEST_FILE).method_hash, hash_value
+                )
 
         def test_hashing(self):
             """Check that hashing works for the filter instances"""
