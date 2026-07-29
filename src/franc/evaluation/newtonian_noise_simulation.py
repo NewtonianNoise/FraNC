@@ -59,6 +59,7 @@ class ReadData:
         self.tag = tag
         self.folder = folder
         self.fileType = fileType
+        self.dictionary = {}
 
         dataFile = np.loadtxt(
             folder + "/" + fileType + tag + ".txt",
