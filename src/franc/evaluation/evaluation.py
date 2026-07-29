@@ -610,7 +610,7 @@ def residual_power_ratio(
     assert target_npy.shape == prediction_npy.shape
 
     if remove_dc:
-        target_npy -= np.mean(target)
+        target_npy -= np.mean(target_npy)
         prediction_npy -= np.mean(prediction_npy)
 
     residual = prediction_npy - target_npy
