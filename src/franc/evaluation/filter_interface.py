@@ -57,6 +57,7 @@ def handle_from_dict(init_func: Callable):
     Otherwise, the constructor is called the usual way.
     """
     from_dict_key = "_from_dict"
+    init_signature = inspect.signature(init_func)
 
     @functools.wraps(init_func)
     def wrapper(self, *args, **kwargs):
@@ -65,12 +66,27 @@ def handle_from_dict(init_func: Callable):
             for key in from_dict:
                 setattr(self, key, from_dict[key])
         else:
-            # save init parameters
-            self.init_parameters = list(args) + [kwargs[key] for key in sorted(kwargs)]
+            # _from_dict is not part of the configuration
+            configuration_kwargs = {
+                key: value for key, value in kwargs.items() if key != from_dict_key
+            }
+
+            # create a unified representation independent of how parameters are passed
+            bound_arguments = init_signature.bind(self, *args, **configuration_kwargs)
+            bound_arguments.apply_defaults()
+            self.init_parameters = {
+                key: value
+                for key, value in sorted(bound_arguments.arguments.items())
+                if key != "self"
+            }
 
             # calculate method hash
+            # qualified class name is included to prevent collisions of filters defined in the same file
             hashes = self.file_hash()  # pylint: disable=[protected-access]
             hashes += FilterInterface.file_hash()  # pylint: disable=[protected-access]
+            hashes += hash_function(
+                f"{type(self).__module__}.{type(self).__qualname__}".encode()
+            )
             hashes += hash_object_list(self.init_parameters)
             self.method_hash_value = hash_function(hashes)
 
