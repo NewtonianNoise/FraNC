@@ -6,6 +6,8 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import doctest
+
 import franc
 
 project = "FraNC"
@@ -29,6 +31,17 @@ templates_path = ["_templates"]
 exclude_patterns: list = []
 
 autodoc_typehints = "description"
+
+# Sphinx's own defaults (DONT_ACCEPT_TRUE_FOR_1 | ELLIPSIS | IGNORE_EXCEPTION_DETAIL),
+# plus NORMALIZE_WHITESPACE: numpy's array repr line-wrapping around trailing
+# annotations (e.g. "shape=(...)") differs across Python/numpy versions in ways
+# that are whitespace-only, not a real behavioural difference.
+doctest_default_flags = (
+    doctest.DONT_ACCEPT_TRUE_FOR_1
+    | doctest.ELLIPSIS
+    | doctest.IGNORE_EXCEPTION_DETAIL
+    | doctest.NORMALIZE_WHITESPACE
+)
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
