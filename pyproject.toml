@@ -54,6 +54,10 @@ external = ["spicypy ~= 0.9", "torch"]
 Repository = "https://github.com/NewtonianNoise/franc"
 Documentation = "https://franc.readthedocs.io/en/latest/"
 
+[tool.pytest.ini_options]
+# needed for pytest --doctest-modules, see testing/test_doctest.py for the reasoning
+doctest_optionflags = ["NORMALIZE_WHITESPACE"]
+
 [[tool.mypy.overrides]]
 module = ["scipy.*", "psutil.*", "numba.*", "icecream.*", "spicypy.*"]
 ignore_missing_imports = true
