@@ -14,12 +14,26 @@ N_TEST_DATASET = 1000
 test_dataset = fnc.evaluation.TestDataGenerator(
     witness_noise_level=[1] * 3, rng_seed=0xDEADBEAF
 ).dataset([N_TEST_DATASET], [N_TEST_DATASET])
-test_dataset_signal = fnc.evaluation.TestDataGenerator(
+test_dataset_zero_signal = fnc.evaluation.TestDataGenerator(
     witness_noise_level=[1] * 3, rng_seed=0xDEADBEAF
 ).dataset([N_TEST_DATASET], [N_TEST_DATASET], generate_signal=True, signal_amplitude=0)
 test_prediction = [
     np.array(seq, copy=True) + 1 for seq in test_dataset.target_evaluation
 ]
+
+# test_dataset_zero_signal above uses signal_amplitude=0, so residual (signal subtracted)
+# and residual_signal (signal kept) are always numerically identical there. This
+# deterministic dataset has a real, nonzero signal so the two can be told apart.
+test_dataset_signal = fnc.evaluation.EvaluationDataset(
+    sample_rate=1.0,
+    witness_conditioning=[[np.zeros(4)]],
+    target_conditioning=[np.zeros(4)],
+    witness_evaluation=[[np.zeros(4)]],
+    target_evaluation=[np.full(4, 5.0)],
+    signal_conditioning=[np.zeros(4)],
+    signal_evaluation=[np.full(4, 2.0)],
+)
+test_dataset_signal_prediction = [np.full(4, 1.0)]
 
 
 class TestEvaluationMetric:  # pylint: disable=too-few-public-methods
@@ -55,7 +69,7 @@ class TestEvaluationMetric:  # pylint: disable=too-few-public-methods
                 len(self.expected_results) == len(self.parameter_sets)
             )
 
-            for dataset in (test_dataset, test_dataset_signal):
+            for dataset in (test_dataset, test_dataset_zero_signal):
                 for idx, metric in enumerate(self.instantiate_filters()):
                     self.assertRaises(RuntimeError, metric.result_full)
 
@@ -90,6 +104,13 @@ class TestRMSMetric(TestEvaluationMetric.TestEvaluationMetric):
         super().__init__(*args, **kwargs)
         self.set_tested_metric(fnc.evaluation.RMSMetric, [{}])
 
+    def test_signal_is_subtracted_from_residual(self):
+        """residual = target - signal - prediction = 5 - 2 - 1 = 2"""
+        metric = self.tested_metric().apply(
+            test_dataset_signal_prediction, test_dataset_signal
+        )
+        self.assertAlmostEqual(metric.result, 2.0)
+
 
 class TestMSEMetric(TestEvaluationMetric.TestEvaluationMetric):
     """Tests for MSEMetric"""
@@ -113,6 +134,13 @@ class TestRMetric(TestEvaluationMetric.TestEvaluationMetric):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.set_tested_metric(fnc.evaluation.RMetric, [{}])
+
+    def test_pre_filter_power_subtracts_signal(self):
+        """mse_pre must use (target - signal): (5-2)^2=9, mse_post=(5-2-1)^2=4, R=4/9"""
+        metric = self.tested_metric().apply(
+            test_dataset_signal_prediction, test_dataset_signal
+        )
+        self.assertAlmostEqual(metric.result, 4.0 / 9.0)
 
 
 class TestSqrtRMetric(TestEvaluationMetric.TestEvaluationMetric):
@@ -237,6 +265,15 @@ class TestTimeSeriesMEtric(TestEvaluationMetric.TestEvaluationMetric):
             [
                 {},
             ],
+        )
+
+    def test_residual_signal_keeps_signal(self):
+        """residual_signal = target - prediction = 5 - 1 = 4 (signal not removed)"""
+        metric = self.tested_metric(residual_with_signal=True).apply(
+            test_dataset_signal_prediction, test_dataset_signal
+        )
+        np.testing.assert_array_almost_equal(
+            metric.result_full()[0][0], np.full(4, 4.0)
         )
 
 
