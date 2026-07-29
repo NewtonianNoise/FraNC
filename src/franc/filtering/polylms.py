@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+import warnings
 
 import numpy as np
 from numpy.typing import NDArray
@@ -23,7 +24,7 @@ def _lms_loop(
     step_scale: float,
     coefficient_clipping: float,
     order: int,
-) -> tuple[NDArray, NDArray, int, int]:
+) -> tuple[NDArray, NDArray, int, int, int]:
     """Run an LMS filter over intput sequences.
 
     :param witness: Witness sensor data
@@ -44,6 +45,7 @@ def _lms_loop(
     offset_target = n_filter - idx_target - 1
     pred_length = len(target) - n_filter + 1
 
+    zero_norm_count = 0
     prediction = []
     for idx in range(0, pred_length):
         # make prediction
@@ -62,12 +64,16 @@ def _lms_loop(
                 raise ValueError(
                     "Overflow! You are probably passing integers of insufficient precision to this function."
                 )
-
-            for i in range(order):
-                # NOTE: this might not be the correct/optimal normalization
-                filter_state[i] += (
-                    2 * step_scale * err * w_sel ** (i + 1) / norm ** ((i + 2) / 2)
-                )
+            if norm == 0:
+                # emitting a warning here is not possible: this function is numba
+                # jit compiled, so the count is signalled to the caller instead
+                zero_norm_count += 1
+            else:
+                for i in range(order):
+                    # NOTE: this might not be the correct/optimal normalization
+                    filter_state[i] += (
+                        2 * step_scale * err * w_sel ** (i + 1) / norm ** ((i + 2) / 2)
+                    )
         else:
             for i in range(order):
                 filter_state[i] += 2 * step_scale * err * w_sel ** (i + 1)
@@ -78,7 +84,7 @@ def _lms_loop(
             )
 
     prediction_npy = np.array(prediction, dtype=np.float64)
-    return prediction_npy, filter_state, offset_target, pred_length
+    return prediction_npy, filter_state, offset_target, pred_length, zero_norm_count
 
 
 @dataclass
@@ -189,17 +195,27 @@ class PolynomialLMSFilter(FilterBase):
 
         # numba jit and numpy don't always work correctly with numpy arrays scalars
         # casting is required to prevent problems
-        prediction, filter_state, offset_target, pred_length = _lms_loop(
-            witness,
-            target,
-            self.n_filter,
-            self.idx_target,
-            np.array(self.filter_state),
-            self.normalized,
-            self.step_scale,
-            np.float64(self.coefficient_clipping),
-            int(self.order),
+        prediction, filter_state, offset_target, pred_length, zero_norm_count = (
+            _lms_loop(
+                witness,
+                target,
+                self.n_filter,
+                self.idx_target,
+                np.array(self.filter_state),
+                self.normalized,
+                self.step_scale,
+                np.float64(self.coefficient_clipping),
+                int(self.order),
+            )
         )
+
+        if zero_norm_count > 0:
+            skipped_percent = 100 * zero_norm_count / pred_length
+            warnings.warn(
+                "PolyLMS filter: Zero normalization encountered in "
+                f"{skipped_percent:.2f}% of windows; those filter updates were skipped.",
+                RuntimeWarning,
+            )
 
         if update_state:
             self.filter_state = filter_state
