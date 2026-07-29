@@ -165,10 +165,6 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
                 raise TypeError(
                     "Only filtering techniques with the FilterInterface interface are supported."
                 )
-            if len(configurations) < 0:
-                raise TypeError(
-                    "At least one parameter configuration must be supported."
-                )
             for config in configurations:
                 if not isinstance(config, dict):
                     raise TypeError("Filter configurations must be dictionaries.")
