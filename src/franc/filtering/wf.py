@@ -125,7 +125,7 @@ def wf_apply(
     :return: prediction
     """
     assert len(witness[0]) >= len(WFC[0]), "Input minimum lenght is one filter length"
-    witness_npy = np.array(witness).astype(np.longdouble)
+    witness_npy = np.array(witness).astype(np.float64)
     return np.sum(
         [correlate(A, WF, mode="valid") for A, WF in zip(witness_npy, WFC)], axis=0
     )
