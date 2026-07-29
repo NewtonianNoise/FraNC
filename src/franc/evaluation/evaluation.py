@@ -211,7 +211,7 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
         filename: str | Path,
     ) -> None:
         """Save a list of numpy arrays to a .npz file"""
-        if Version(np.__version__[0]) < Version("2.2"):
+        if Version(np.__version__) < Version("2.2"):
             # the allow_pickle parameter was introduced in numpy 2.2
             np.savez(filename, *data)
         else:
