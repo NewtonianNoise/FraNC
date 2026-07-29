@@ -2,6 +2,7 @@
 
 import unittest
 from typing import Iterable, TypeVar, Generic
+import inspect
 import warnings
 
 import numpy as np
@@ -246,3 +247,87 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                 self.assertIsInstance(new_hash, bytes)
                 self.assertNotEqual(new_hash, old_hash)
                 old_hash = new_hash
+
+        def optional_parameter_names(self) -> list[str]:
+            """Names of the __init__ parameters of the target filter that have a default value"""
+            signature = inspect.signature(self.target_filter.__init__)
+            return [
+                name
+                for name, parameter in signature.parameters.items()
+                if parameter.default is not inspect.Parameter.empty
+                and name != "_from_dict"
+            ]
+
+        def test_hash_is_independent_of_call_style(self):
+            """The same configuration must give the same hash no matter how it was passed
+
+            Positional and keyword arguments as well as parameters that are left at
+            their default value must all result in the same configuration.
+            """
+            for parameters in self.default_filter_parameters:
+                positional = self.target_filter(2, 10, 0, **parameters)
+                keyword = self.target_filter(
+                    n_channel=2, n_filter=10, idx_target=0, **parameters
+                )
+                self.assertEqual(positional.method_hash, keyword.method_hash)
+
+                # explicitly passing a default value must not change the hash
+                signature = inspect.signature(self.target_filter.__init__)
+                explicit_defaults = {
+                    name: signature.parameters[name].default
+                    for name in self.optional_parameter_names()
+                    if name not in parameters
+                    and name not in {"n_channel", "n_filter", "idx_target"}
+                }
+                filt = self.target_filter(2, 10, 0, **parameters, **explicit_defaults)
+                self.assertEqual(positional.method_hash, filt.method_hash)
+
+        def test_hash_depends_on_parameter_names(self):
+            """Assigning the same value to different parameters must not collide
+
+            Hashing only the parameter values made configurations such as
+            {"order": 2} and {"step_scale": 2} indistinguishable, which made the
+            prediction cache of an EvaluationRun return the results of one
+            configuration for the other.
+            """
+            probe_value = 2
+            hashes: dict[str, bytes] = {}
+            for name in self.optional_parameter_names():
+                try:
+                    filt = self.target_filter(2, 10, 0, **{name: probe_value})
+                except (AssertionError, TypeError, ValueError):
+                    # the probe value is not valid for this parameter
+                    continue
+                hashes[name] = filt.method_hash
+
+            for name, hash_value in hashes.items():
+                for other_name, other_hash in hashes.items():
+                    if name == other_name:
+                        continue
+                    self.assertNotEqual(
+                        hash_value,
+                        other_hash,
+                        f"Setting {name} and {other_name} to {probe_value} "
+                        "results in the same hash",
+                    )
+
+        def test_hash_changes_with_parameters(self):
+            """Changing any of the common parameters must change the hash"""
+            base_configuration = {"n_channel": 2, "n_filter": 10, "idx_target": 0}
+
+            for parameters in self.default_filter_parameters:
+                base_hash = self.target_filter(
+                    **base_configuration, **parameters
+                ).method_hash
+
+                for name, value in [
+                    ("n_channel", 3),
+                    ("n_filter", 11),
+                    ("idx_target", 1),
+                ]:
+                    changed = dict(base_configuration, **{name: value})
+                    self.assertNotEqual(
+                        base_hash,
+                        self.target_filter(**changed, **parameters).method_hash,
+                        f"Changing {name} had no effect on the hash",
+                    )
