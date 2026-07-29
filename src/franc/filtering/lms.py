@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+import warnings
 
 import numpy as np
 from numpy.typing import NDArray
@@ -22,10 +23,11 @@ def _lms_loop(
     normalized: bool,
     step_scale: float,
     coefficient_clipping: float,
-) -> tuple[NDArray, NDArray, int, int]:
+) -> tuple[NDArray, NDArray, int, int, int]:
     offset_target = n_filter - idx_target - 1
     pred_length = len(target) - n_filter + 1
 
+    zero_norm_count = 0
     prediction = []
     for idx in range(0, pred_length):
         # make prediction
@@ -42,7 +44,12 @@ def _lms_loop(
                 raise ValueError(
                     "Overflow! You are probably passing integers of insufficient precision to this function."
                 )
-            filter_state += 2 * step_scale * err * w_sel / norm
+            if norm == 0:
+                # emitting a warning here is not possible: this function is numba
+                # jit compiled, so the count is signalled to the caller instead
+                zero_norm_count += 1
+            else:
+                filter_state += 2 * step_scale * err * w_sel / norm
         else:
             filter_state += 2 * step_scale * err * w_sel
 
@@ -50,7 +57,13 @@ def _lms_loop(
             filter_state = np.clip(
                 filter_state, -coefficient_clipping, coefficient_clipping
             )
-    return np.array(prediction), filter_state, offset_target, pred_length
+    return (
+        np.array(prediction),
+        filter_state,
+        offset_target,
+        pred_length,
+        zero_norm_count,
+    )
 
 
 @dataclass
@@ -156,16 +169,26 @@ class LMSFilter(FilterBase):
 
         # addition of zero is used to convert numpy scalars into standard python objects
         # numba jit and numpy don't work otherwise
-        prediction, filter_state, offset_target, pred_length = _lms_loop(
-            witness,
-            target,
-            self.n_filter,
-            self.idx_target,
-            np.array(self.filter_state),
-            self.normalized,
-            self.step_scale,
-            0 + self.coefficient_clipping,
+        prediction, filter_state, offset_target, pred_length, zero_norm_count = (
+            _lms_loop(
+                witness,
+                target,
+                self.n_filter,
+                self.idx_target,
+                np.array(self.filter_state),
+                self.normalized,
+                self.step_scale,
+                0 + self.coefficient_clipping,
+            )
         )
+
+        if zero_norm_count > 0:
+            skipped_percent = 100 * zero_norm_count / pred_length
+            warnings.warn(
+                "LMS filter: Zero normalization encountered in "
+                f"{skipped_percent:.2f}% of windows; those filter updates were skipped.",
+                RuntimeWarning,
+            )
 
         if update_state:
             self.filter_state = filter_state
