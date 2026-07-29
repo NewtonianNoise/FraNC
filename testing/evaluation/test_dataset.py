@@ -33,6 +33,38 @@ class TestEvaluationDataset(unittest.TestCase):
             1.0, witness, target, witness, target, signal, signal, "Dataset Name"
         )
 
+    def test_immutability(self):
+        """EvaluationDataset must store data as read-only copies: mutating the stored
+        arrays must fail, and mutating the caller's original input after construction
+        must not be reflected in the dataset."""
+        witness = [[np.array([1.0, 2.0, 3.0]), np.array([4.0, 5.0, 6.0])]]
+        target = [np.array([1.0, 2.0, 3.0])]
+        signal = [np.array([1.0, 2.0, 3.0])]
+
+        dataset = fnc.evaluation.EvaluationDataset(
+            1.0, witness, target, witness, target, signal, signal
+        )
+
+        # the dataset's stored arrays must be read-only
+        for array in [
+            dataset.witness_conditioning[0][0],
+            dataset.target_conditioning[0],
+            dataset.witness_evaluation[0][0],
+            dataset.target_evaluation[0],
+            dataset.signal_conditioning[0],
+            dataset.signal_evaluation[0],
+        ]:
+            with self.assertRaises(ValueError):
+                array[0] = 42
+
+        # mutating the caller's original input after construction must not leak in
+        target[0][0] = 999
+        witness[0][0][0] = 999
+        signal[0][0] = 999
+        self.assertEqual(dataset.target_conditioning[0][0], 1.0)
+        self.assertEqual(dataset.witness_conditioning[0][0][0], 1.0)
+        self.assertEqual(dataset.signal_conditioning[0][0], 1.0)
+
     def test_wrong_input(self):
         """Check that malformed input results in adequate errors"""
         from franc.evaluation import (  # pylint: disable=import-outside-toplevel
