@@ -103,7 +103,7 @@ def wf_calculate(
     WFC = R_ww_inv.dot(np.array(R_ws))
 
     # unwrap into seperate FIR filters
-    WFC = WFC.reshape((len(witness), n_filter))
+    WFC = WFC.reshape((witness_npy.shape[0], n_filter))
     WFC = np.array([np.flip(i) for i in WFC])
 
     assert (
@@ -124,8 +124,10 @@ def wf_apply(
 
     :return: prediction
     """
-    assert len(witness[0]) >= len(WFC[0]), "Input minimum lenght is one filter length"
-    witness_npy = np.array(witness).astype(np.float64)
+    witness_npy = make_2d_array(witness).astype(np.float64)
+    assert witness_npy.shape[1] >= len(
+        WFC[0]
+    ), "Input minimum lenght is one filter length"
     return np.sum(
         [correlate(A, WF, mode="valid") for A, WF in zip(witness_npy, WFC)], axis=0
     )
