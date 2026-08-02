@@ -9,7 +9,7 @@ from warnings import warn
 import numpy as np
 from numpy.typing import NDArray
 
-from .common import FilterBase, handle_from_dict
+from .common import FilterBase, handle_from_dict, pad_prediction
 from .wf import wf_calculate, wf_apply
 
 
@@ -130,12 +130,8 @@ class UpdatingWienerFilter(FilterBase):
             warn("Warning: not all UWF blocks had full rank", RuntimeWarning)
 
         if pad:
-            prediction_npy = np.concatenate(
-                [
-                    np.zeros(self.n_filter - 1 - self.idx_target),
-                    prediction,
-                    np.zeros(self.idx_target + additional_padding),
-                ]
+            prediction_npy = pad_prediction(
+                prediction, self.n_filter, self.idx_target, additional_padding
             )
         else:
             prediction_npy = np.array(prediction)

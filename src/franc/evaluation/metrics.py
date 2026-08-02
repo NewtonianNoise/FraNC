@@ -10,7 +10,6 @@ from collections.abc import Sequence
 import abc
 import functools
 import warnings
-import inspect
 from pathlib import Path
 
 import numpy as np
@@ -21,7 +20,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import welch, spectrogram
 
 from .dataset import EvaluationDataset
-from ..common import hash_object_list, hash_function, bytes2str
+from ..common import hash_object_list, hash_function, hash_class_file, bytes2str
 
 # Self type was only added in 3.11; this ensures compatibility with older python versions
 if sys.hexversion >= 0x30B0000:
@@ -189,17 +188,7 @@ class EvaluationMetric(abc.ABC):
     @classmethod
     def _file_hash(cls) -> bytes:
         """Calculates a hash value based on the file in which this method was defined."""
-        try:
-            with open(inspect.getfile(cls), "rb") as f:
-                script = f.read()
-        except TypeError:
-            try:
-                script = inspect.getsource(cls).encode()
-            except TypeError:
-                script = cls.name.encode()
-                warnings.warn(f"Could not include source code in hash for {cls.name}")
-
-        return hash_function(script)
+        return hash_class_file(cls, cls.name)
 
     @property
     def method_hash(self) -> bytes:
@@ -457,7 +446,6 @@ class PSDMetric(
 
     name = "Power spectral density"
 
-    @EvaluationMetric.init_wrapper
     def __init__(
         self,
         n_fft: int = 1024,
@@ -528,7 +516,7 @@ class PSDMetric(
 
     def plot(self, ax: Axes):
         """Plot to the given Axes object"""
-        freq = self.result_full()[1]
+        _, freq, s_min, s_max = self.result_full()
 
         # setup up axes
         if self.logx:
@@ -538,9 +526,7 @@ class PSDMetric(
             ax.set_xlim(min(freq), max(freq))
         if self.logy:
             ax.set_yscale("log")
-        ax.fill_between(
-            freq, self.result_full()[2], self.result_full()[3], fc="C0", alpha=0.3
-        )
+        ax.fill_between(freq, s_min, s_max, fc="C0", alpha=0.3)
 
         # plotting
         ax.plot(freq, self.result, label="Residual", c="C0")
@@ -608,7 +594,6 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
 
     name = "Time series"
 
-    @EvaluationMetric.init_wrapper
     def __init__(
         self,
         show_target: bool = True,
@@ -647,7 +632,8 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
         if self.show_target:
             ax.plot(x, t, label="Target", rasterized=True)
 
-        r = np.concatenate(self.result_full()[0])[self.start : self.stop]
+        residual_sections = self.result_full()[0]
+        r = np.concatenate(residual_sections)[self.start : self.stop]
         label_residual = (
             "Residual w/ signal" if self.residual_with_signal else "Residual w/o signal"
         )
@@ -662,7 +648,7 @@ class TimeSeriesMetric(EvaluationMetricPlottable):
                 ax.plot(x, s, label="Signal", rasterized=True, ls="--")
 
         x_marker = 0.0
-        for section in self.result_full()[0]:
+        for section in residual_sections:
             x_marker += len(section) / self.dataset.sample_rate
             plt.axvline(x_marker, c="k")
 
@@ -682,7 +668,6 @@ class SpectrogramMetric(EvaluationMetricPlottable):
 
     name = "Spectrogram"
 
-    @EvaluationMetric.init_wrapper
     def __init__(
         self,
         n_fft: int = 4096,

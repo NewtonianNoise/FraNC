@@ -7,6 +7,7 @@ from .common import (
     hash_function_str,
     hash_object_list,
     hash_object_list_int,
+    hash_class_file,
     bytes2int,
     bytes2str,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "hash_function_str",
     "hash_object_list",
     "hash_object_list_int",
+    "hash_class_file",
     "bytes2int",
     "bytes2str",
 ]
