@@ -105,7 +105,8 @@ class UpdatingWienerFilter(FilterBase):
                 min(len(target), idx + self.n_filter + self.context_post),
             )
             if len(selection_conditioning) < self.n_filter:
-                additional_padding = len(selection_conditioning)
+                # the samples from idx onwards cannot be predicted anymore
+                additional_padding = len(target) - idx
                 break
             self.filter_state, full_rank = wf_calculate(
                 witness[:, selection_conditioning],
@@ -122,9 +123,6 @@ class UpdatingWienerFilter(FilterBase):
                 :,
                 max(0, idx - self.n_filter + 1) : min(idx + self.n_filter, len(target)),
             ]
-            if w_sel.shape[1] < self.n_filter:
-                additional_padding = w_sel.shape[1]
-                break
             p = wf_apply(self.filter_state, w_sel)
             prediction += list(p)
 
