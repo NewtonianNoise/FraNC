@@ -103,8 +103,8 @@ The location can be changed through the `directory` parameter.
 
     dataset hash BoDJtHaxYvQ_GSCuo9gmkhSP4HM=
     WF (ran conditioning and calculated prediction)
-        target:  Residual RMS: 0.055742 AU
-          Residual MSE: 0.003107 (AU)²
+        target:  Residual RMS: 0.055750 AU
+          Residual MSE: 0.003108 (AU)²
           Power spectral density
     LMS (ran conditioning and calculated prediction)
         target:  Residual RMS: 0.056846 AU
