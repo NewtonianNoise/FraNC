@@ -28,6 +28,20 @@ class TestWienerFilter(TestFilter.TestFilter[WienerFilter]):
         for filt in self.instantiate_filters(n_channel=2, n_filter=n_filter):
             self.assertWarns(RuntimeWarning, filt.condition, witness, target)
 
+    def test_impulse_response_recovery(self):
+        """check that a known FIR response is recovered from a noiseless system"""
+        impulse_response = np.array([0.5, -0.25, 0.75, 0.1])
+        witness = np.random.default_rng(RNG_SEED).normal(0, 1, 20000)
+        target = np.convolve(witness, impulse_response)[: len(witness)]
+
+        filt = fnc.filtering.WienerFilter(1, len(impulse_response), 0)
+        coefficients, _ = filt.condition(witness, target)
+
+        # the coefficients hold the impulse response in reverse order
+        np.testing.assert_allclose(
+            coefficients[0], np.flip(impulse_response), atol=1e-2
+        )
+
     def test_module_functions_with_1d_witness(self):
         """check that the wf functions treat 1D and 2D single channel input the same"""
         witness, target = fnc.evaluation.TestDataGenerator(
