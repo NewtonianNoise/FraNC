@@ -221,11 +221,24 @@ class Report(dict, abc.ABC):
         return fname
 
 
-def _escape_latex_chars(inp: str):
-    special_chars = r"\\&%$#_{}~^"
-    for sc in special_chars:
-        inp = inp.replace(sc, "\\" + sc)
-    return inp
+LATEX_SPECIAL_CHARS = {
+    # "\\" is a line break in latex, "~" and "^" are accent commands
+    "\\": r"\textbackslash{}",
+    "~": r"\textasciitilde{}",
+    "^": r"\textasciicircum{}",
+    "&": r"\&",
+    "%": r"\%",
+    "$": r"\$",
+    "#": r"\#",
+    "_": r"\_",
+    "{": r"\{",
+    "}": r"\}",
+}
+
+
+def _escape_latex_chars(inp: str) -> str:
+    """escape the characters that have a special meaning in latex"""
+    return "".join(LATEX_SPECIAL_CHARS.get(character, character) for character in inp)
 
 
 class LatexReport(Report):
@@ -290,7 +303,10 @@ postbreak=\mbox{{$\hookrightarrow$}\space},
 
         latex = ""
         for name, entry in structure.items():
-            latex += f"\\{self.sectioning_commands[level]}{{{name}}}\n"
+            latex += (
+                f"\\{self.sectioning_commands[level]}"
+                f"{{{_escape_latex_chars(name)}}}\n"
+            )
 
             if isinstance(entry, dict):
                 latex += self.generate(entry, level + 1)
@@ -375,7 +391,7 @@ class HTMLReport(Report):
 
         html = ""
         for name, entry in structure.items():
-            html += f"<h{level+1}>{name}</h{level+1}>\n"
+            html += f"<h{level+1}>{html_escape(name)}</h{level+1}>\n"
 
             if isinstance(entry, dict):
                 html += self.generate(entry, level + 1)
