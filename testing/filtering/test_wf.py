@@ -1,9 +1,11 @@
 """Tests for WienerFilter"""
 
-import franc as fnc
-from franc.filtering.wf import WienerFilter
+import numpy as np
 
-from .test_filters import TestFilter
+import franc as fnc
+from franc.filtering.wf import WienerFilter, wf_calculate, wf_apply
+
+from .test_filters import TestFilter, RNG_SEED
 
 
 class TestWienerFilter(TestFilter.TestFilter[WienerFilter]):
@@ -25,6 +27,20 @@ class TestWienerFilter(TestFilter.TestFilter[WienerFilter]):
 
         for filt in self.instantiate_filters(n_channel=2, n_filter=n_filter):
             self.assertWarns(RuntimeWarning, filt.condition, witness, target)
+
+    def test_module_functions_with_1d_witness(self):
+        """check that the wf functions treat 1D and 2D single channel input the same"""
+        witness, target = fnc.evaluation.TestDataGenerator(
+            0.1, rng_seed=RNG_SEED
+        ).generate(2000)
+
+        coefficients_1d = wf_calculate(witness[0], target, 16)[0]
+        coefficients_2d = wf_calculate(witness, target, 16)[0]
+        prediction_1d = wf_apply(coefficients_1d, witness[0])
+        prediction_2d = wf_apply(coefficients_2d, witness)
+
+        np.testing.assert_array_equal(coefficients_1d, coefficients_2d)
+        np.testing.assert_array_equal(prediction_1d, prediction_2d)
 
     def test_no_target_for_apply(self):
         """check that the filter can be applied without a target signal"""

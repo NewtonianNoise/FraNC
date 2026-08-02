@@ -102,7 +102,7 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                     filt.apply(witness, target)
 
         def test_acceptance_of_lists(self):
-            """Check that the filter accepts inputs that are not np.ndarray"""
+            """Check that the filter accepts inputs that are not a 2D np.ndarray"""
             n_filter = 128
             witness, target = fnc.evaluation.TestDataGenerator(
                 0.1, rng_seed=RNG_SEED
@@ -113,6 +113,10 @@ class TestFilter:  # pylint: disable=too-few-public-methods
                     warnings.simplefilter("ignore")
                     filt.condition(witness.tolist(), target.tolist())
                     filt.apply(witness.tolist(), target.tolist())
+
+                    # a single channel witness may also be passed as a 1D array
+                    filt.condition(witness[0], target)
+                    filt.apply(witness[0], target)
 
         def test_output_shapes(self):
             """Check output shapes"""
