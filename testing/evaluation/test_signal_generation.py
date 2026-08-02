@@ -20,3 +20,11 @@ class TestWavePacketGeneration(unittest.TestCase):
             np.random.default_rng(0xABCDE),
         )
         self.assertIsInstance(values[0], np.ndarray)
+
+    def test_peak_scaling(self):
+        """Test that the amplitude bounds the packet independent of the offset"""
+        for offset in [0, 100, 400, -250]:
+            packet = fnc.eval.signal_generation.generate_wave_packet(
+                offset, 100.0, 3.0, 0.02, np.pi / 2
+            )
+            self.assertAlmostEqual(np.max(np.abs(packet)), 3.0)
