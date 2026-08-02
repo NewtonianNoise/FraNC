@@ -31,27 +31,27 @@ def mean_cross_correlation_offset(
     return correlate(A, B[offset:], mode="valid")
 
 
-def wf_calculate(
+def wf_calculate_correlations(
     witness: Sequence | NDArray,
     target: Sequence | NDArray,
     n_filter: int,
     idx_target: int = 0,
-    inversion_method: str = "np_pinv",
-    regularization: float = 0.0,
-) -> tuple[NDArray, bool]:
-    """caluclate the FIR coefficients for a wiener filter
+) -> tuple[NDArray, NDArray]:
+    """calculate the cross- and auto-correlation statistics of the Wiener-Hopf equations
+    for a single witness/target sequence pair
+
+    Statistics of multiple sequences can be combined by summing R_ws and R_ww of each
+    sequence before solving the resulting equations with wf_solve(). Since correlate()
+    sums rather than averages over time, this naturally weights each sequence by its
+    length and is equivalent to (but numerically better behaved than) concatenating the
+    sequences.
 
     :param witness: Witness sensor data
-    :param witness: Target sensor data
+    :param target: Target sensor data
     :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
     :param idx_target: offset of the prediction relative to the end of the array
-    :param inversion_method: matrix inversion method used for filter coefficient calculation. Check WienerFilter class dock string for possible values
-    :param regularization: Tikhonov regularization strength added to the diagonal of the input
-        autocorrelation matrix before inversion. 0 disables regularization. Larger values trade
-        fit accuracy for a better conditioned, more stable filter
 
-
-    :return: filter coefficients, full_rank (bool)
+    :return: cross-correlation vector R_ws, auto-correlation matrix R_ww
     """
     target_npy: NDArray = np.array(target)
     witness_npy: NDArray = make_2d_array(witness)
@@ -102,6 +102,33 @@ def wf_calculate(
             [[calc_r_matrix(A, B, n_filter) for B in witness_npy] for A in witness_npy]
         )
 
+    return R_ws, R_ww
+
+
+def wf_solve(
+    R_ws: Sequence | NDArray,
+    R_ww: Sequence | NDArray,
+    n_filter: int,
+    n_channel: int,
+    inversion_method: str = "np_pinv",
+    regularization: float = 0.0,
+) -> tuple[NDArray, bool]:
+    """solve the Wiener-Hopf equations R_ww @ w = R_ws for the FIR filter coefficients
+
+    :param R_ws: cross-correlation vector, as returned by wf_calculate_correlations()
+    :param R_ww: auto-correlation matrix, as returned by wf_calculate_correlations()
+        (or the sum of several, when pooling statistics of multiple sequences)
+    :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
+    :param n_channel: Number of witness sensor channels
+    :param inversion_method: matrix inversion method used for filter coefficient calculation. Check WienerFilter class dock string for possible values
+    :param regularization: Tikhonov regularization strength added to the diagonal of the input
+        autocorrelation matrix before inversion. 0 disables regularization. Larger values trade
+        fit accuracy for a better conditioned, more stable filter
+
+    :return: filter coefficients, full_rank (bool)
+    """
+    R_ww = np.array(R_ww)
+
     if regularization:
         R_ww = R_ww + regularization * np.eye(len(R_ww))
 
@@ -129,7 +156,7 @@ def wf_calculate(
     WFC = R_ww_inv.dot(np.array(R_ws))
 
     # unwrap into seperate FIR filters
-    WFC = WFC.reshape((witness_npy.shape[0], n_filter))
+    WFC = WFC.reshape((n_channel, n_filter))
     WFC = np.array([np.flip(i) for i in WFC])
 
     assert (
@@ -137,6 +164,40 @@ def wf_calculate(
     ), "input data was to short resulting in an incompatible filter"
 
     return WFC, full_rank
+
+
+def wf_calculate(
+    witness: Sequence | NDArray,
+    target: Sequence | NDArray,
+    n_filter: int,
+    idx_target: int = 0,
+    inversion_method: str = "np_pinv",
+    regularization: float = 0.0,
+) -> tuple[NDArray, bool]:
+    """caluclate the FIR coefficients for a wiener filter
+
+    :param witness: Witness sensor data
+    :param witness: Target sensor data
+    :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
+    :param idx_target: offset of the prediction relative to the end of the array
+    :param inversion_method: matrix inversion method used for filter coefficient calculation. Check WienerFilter class dock string for possible values
+    :param regularization: Tikhonov regularization strength added to the diagonal of the input
+        autocorrelation matrix before inversion. 0 disables regularization. Larger values trade
+        fit accuracy for a better conditioned, more stable filter
+
+
+    :return: filter coefficients, full_rank (bool)
+    """
+    n_channel = make_2d_array(witness).shape[0]
+    R_ws, R_ww = wf_calculate_correlations(witness, target, n_filter, idx_target)
+    return wf_solve(
+        R_ws,
+        R_ww,
+        n_filter,
+        n_channel,
+        inversion_method=inversion_method,
+        regularization=regularization,
+    )
 
 
 def wf_apply(
@@ -215,6 +276,12 @@ class WienerFilter(FilterBase):
     ) -> tuple[NDArray, bool]:
         """Use an input dataset to condition the filter
 
+        The cross- and auto-correlation statistics of all sequences are pooled into a
+        single set of Wiener-Hopf equations, which are then solved once. This is both
+        cheaper and more accurate than solving per sequence and averaging the resulting
+        filters, since it needs only one matrix inversion and lets data from all
+        sequences jointly constrain the solution.
+
         :param witness: Witness sensor data
         :param target: Target sensor data
         """
@@ -222,23 +289,30 @@ class WienerFilter(FilterBase):
             witness, target
         )
 
-        full_rank = True
-        filter_coefficients = []
-        norm = 0
+        R_ws_total: NDArray | None = None
+        R_ww_total: NDArray | None = None
         for witness_npy_i, target_npy_i in zip(witness_npy, target_npy):
-            fc, full_rank_i = wf_calculate(
+            R_ws, R_ww = wf_calculate_correlations(
                 witness_npy_i,
                 target_npy_i,
                 self.n_filter,
                 idx_target=self.idx_target,
-                inversion_method=self.inversion_method,
-                regularization=self.regularization,
             )
-            full_rank &= full_rank_i
-            filter_coefficients.append(fc * len(target_npy_i))
-            norm += len(target_npy_i)
+            R_ws_total = R_ws if R_ws_total is None else R_ws_total + R_ws
+            R_ww_total = R_ww if R_ww_total is None else R_ww_total + R_ww
 
-        self.filter_state: NDArray = np.sum(filter_coefficients, axis=0) / norm
+        assert (
+            R_ws_total is not None and R_ww_total is not None
+        ), "at least one witness/target sequence must be provided"
+
+        self.filter_state, full_rank = wf_solve(
+            R_ws_total,
+            R_ww_total,
+            self.n_filter,
+            self.n_channel,
+            inversion_method=self.inversion_method,
+            regularization=self.regularization,
+        )
 
         if not full_rank:
             warn("Warning: Filter is not of full rank", RuntimeWarning)
