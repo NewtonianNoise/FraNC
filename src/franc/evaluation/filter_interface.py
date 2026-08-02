@@ -15,7 +15,7 @@ from packaging.version import Version
 import numpy as np
 from numpy.typing import NDArray
 
-from ..common import hash_function, hash_object_list
+from ..common import hash_function, hash_object_list, hash_class_file
 
 # create a type variable that can be any instance of a Filter subclass
 FilterTypeT = TypeVar("FilterTypeT", bound="FilterInterface")
@@ -397,18 +397,7 @@ class FilterInterface(abc.ABC):
     @classmethod
     def file_hash(cls: type[FilterTypeT]) -> bytes:
         """Calculates a hash value based on the file in which this method was defined."""
-        try:
-            with open(inspect.getfile(cls), "rb") as f:
-                script = f.read()
-        except TypeError:
-            try:
-                script = inspect.getsource(cls).encode()
-            except TypeError:
-                script = cls.filter_name.encode()
-                warnings.warn(
-                    f"Could not include source code in hash for {cls.filter_name}"
-                )
-        return hash_function(script)
+        return hash_class_file(cls, cls.filter_name)  # pylint: disable=no-member
 
     @property
     def method_hash(self) -> bytes:

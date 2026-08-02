@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from .common import FilterBase, handle_from_dict
+from .common import FilterBase, handle_from_dict, pad_prediction
 
 
 @dataclass
@@ -82,12 +82,8 @@ class BypassFilter(FilterBase):
                 max(len(w_sequence[0]) - self.n_filter + 1, 0)
             )
             if pad:
-                prediction_sequence = np.concatenate(
-                    [
-                        np.zeros(self.n_filter - 1 - self.idx_target),
-                        prediction_sequence,
-                        np.zeros(self.idx_target),
-                    ]
+                prediction_sequence = pad_prediction(
+                    prediction_sequence, self.n_filter, self.idx_target
                 )
             predictions.append(prediction_sequence)
         return predictions

@@ -10,7 +10,7 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.signal import correlate
 
-from .common import FilterBase, make_2d_array, handle_from_dict
+from .common import FilterBase, make_2d_array, handle_from_dict, pad_prediction
 
 
 def mean_cross_correlation_offset(
@@ -225,12 +225,8 @@ class WienerFilter(FilterBase):
         for w_sequence in witness:
             prediction_sequence = wf_apply(self.filter_state, w_sequence)
             if pad:
-                prediction_sequence = np.concatenate(
-                    [
-                        np.zeros(self.n_filter - 1 - self.idx_target),
-                        prediction_sequence,
-                        np.zeros(self.idx_target),
-                    ]
+                prediction_sequence = pad_prediction(
+                    prediction_sequence, self.n_filter, self.idx_target
                 )
             predictions.append(prediction_sequence)
         return predictions

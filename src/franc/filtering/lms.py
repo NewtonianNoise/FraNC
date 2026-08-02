@@ -10,7 +10,7 @@ import numpy as np
 from numpy.typing import NDArray
 import numba
 
-from .common import FilterBase, handle_from_dict
+from .common import AdaptiveFilterBase, handle_from_dict, pad_prediction
 
 
 @numba.njit
@@ -67,7 +67,7 @@ def _lms_loop(
 
 
 @dataclass
-class LMSFilter(FilterBase):
+class LMSFilter(AdaptiveFilterBase):
     """LMS filter implementation
 
     :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
@@ -124,27 +124,6 @@ class LMSFilter(FilterBase):
         """reset the filter coefficients to zero"""
         self.filter_state = np.zeros((self.n_channel, self.n_filter))
 
-    def condition(
-        self,
-        witness: Sequence | NDArray,
-        target: Sequence | NDArray,
-    ) -> None:
-        """Use an input dataset to condition the filter
-
-        :param witness: Witness sensor data
-        :param target: Target sensor data
-        """
-        _ = self.apply(witness, target, update_state=True)
-
-    def condition_multi_sequence(
-        self,
-        witness: Sequence | Sequence[Sequence] | NDArray,
-        target: Sequence | NDArray,
-    ) -> None:
-        """Similar to condition(), but expects multiple sequences"""
-        for w, t in zip(witness, target):
-            self.condition(w, t)
-
     def apply(
         self,
         witness: Sequence | NDArray,
@@ -174,7 +153,7 @@ class LMSFilter(FilterBase):
 
         # addition of zero is used to convert numpy scalars into standard python objects
         # numba jit and numpy don't work otherwise
-        prediction, filter_state, offset_target, pred_length, zero_norm_count = (
+        prediction, filter_state, _offset_target, pred_length, zero_norm_count = (
             _lms_loop(
                 witness,
                 target,
@@ -200,26 +179,6 @@ class LMSFilter(FilterBase):
 
         prediction = np.array(prediction)
         if pad:
-            prediction = np.concatenate(
-                [
-                    np.zeros(offset_target),
-                    prediction,
-                    np.zeros(len(target) - pred_length - offset_target),
-                ]
-            )
+            prediction = pad_prediction(prediction, self.n_filter, self.idx_target)
 
         return prediction
-
-    def apply_multi_sequence(
-        self,
-        witness: Sequence | NDArray,
-        target: Sequence | NDArray | None = None,
-        pad: bool = True,
-        update_state: bool = False,
-    ) -> Sequence[NDArray]:
-        if target is None:
-            raise ValueError("A target signal must be supplied")
-        predictions = [
-            self.apply(w, t, pad, update_state) for w, t in zip(witness, target)
-        ]
-        return predictions

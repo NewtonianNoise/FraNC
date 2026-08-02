@@ -62,7 +62,6 @@ try:
 except ImportError:
     import warnings
 
-    print("warn")
     warnings.warn(
         "To use the NewtonianNoiseDataGenerator, install torch", RuntimeWarning
     )

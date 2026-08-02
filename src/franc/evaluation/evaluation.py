@@ -146,11 +146,6 @@ class EvaluationRun:  # pylint: disable=too-many-instance-attributes
             for fm, configurations in self.method_configurations
         ]
 
-        for _, configurations in method_configurations:
-            for conf in configurations:
-                if "n_channel" not in conf:
-                    conf = conf | {"n_channel": self.dataset.channel_count}
-
         self.all_configurations_list: list | None = None
 
     def _check_method_configurations(

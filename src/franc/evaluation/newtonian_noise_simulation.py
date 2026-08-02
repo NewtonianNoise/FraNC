@@ -34,6 +34,9 @@ total_start_time = systime.time()
 pi = torch.pi
 G = co.gravitational_constant
 
+# added to distances before dividing by them, to avoid division by zero at the origin
+_DISTANCE_EPSILON = 1e-20
+
 
 #########################################
 # ~~~~~~~~~~~~~~File Reader~~~~~~~~~~~~~~#
@@ -49,11 +52,10 @@ class ReadData:
     :param fileType: identifier of the file
     """
 
-    tag = ""
-    folder = ""
-    fileType = ""
-
-    dictionary: dict = {}
+    tag: str
+    folder: str
+    fileType: str
+    dictionary: dict
 
     def __init__(self, tag, folder, fileType="settingFile"):
         self.tag = tag
@@ -276,17 +278,17 @@ class NewtonianNoiseDataGenerator:
         self.default_depth = depth
         self.default_cavity_r = cavity_r
 
-        if not mirror_positions is None:
+        if mirror_positions is not None:
             self.default_mirror_positions = mirror_positions
         else:
             self.default_mirror_positions = self.single_mirror_position
-        if not mirror_directions is None:
+        if mirror_directions is not None:
             self.default_mirror_directions = mirror_directions
         else:
             self.default_mirror_directions = self.single_mirror_direction
         self.default_mirror_count = len(self.default_mirror_positions)
 
-        if not point_source_positions is None:
+        if point_source_positions is not None:
             self.default_point_source_positions = point_source_positions
         else:
             self.default_point_source_positions = [[-1000, -1000, 0]]
@@ -310,7 +312,7 @@ class NewtonianNoiseDataGenerator:
 
         self.default_state = (
             state
-            if not state is None
+            if state is not None
             else [
                 [400, 350, 0],
                 [-250, 250, 0],
@@ -421,77 +423,77 @@ class NewtonianNoiseDataGenerator:
                                 "left" for only waves from -x,
                                 "p000"-"p100" for 0%-100% point source contribution
         """
-        NoR = NoR if not NoR is None else self.default_NoR
+        NoR = NoR if NoR is not None else self.default_NoR
 
         # ~~~~~~~~~~~~~~Save management~~~~~~~~~~~~~~#
 
-        ID = ID if not ID is None else self.default_ID
-        folder = folder if not folder is None else self.default_folder
+        ID = ID if ID is not None else self.default_ID
+        folder = folder if folder is not None else self.default_folder
 
         # ~~~~~~~~~~~~~~General~~~~~~~~~~~~~~#
 
-        useGPU = useGPU if not useGPU is None else self.default_useGPU
-        randomSeed = randomSeed if not randomSeed is None else self.default_randomSeed
+        useGPU = useGPU if useGPU is not None else self.default_useGPU
+        randomSeed = randomSeed if randomSeed is not None else self.default_randomSeed
         isMonochromatic = (
             isMonochromatic
-            if not isMonochromatic is None
+            if isMonochromatic is not None
             else self.default_isMonochromatic
         )
 
         # ~~~~~~~~~~~~~~Constants~~~~~~~~~~~~~~#
 
-        M = M if not M is None else self.default_M
-        rho = rho if not rho is None else self.default_rho
-        c_p = c_p if not c_p is None else self.default_c_p
+        M = M if M is not None else self.default_M
+        rho = rho if rho is not None else self.default_rho
+        c_p = c_p if c_p is not None else self.default_c_p
 
         # ~~~~~~~~~~~~~~Domain~~~~~~~~~~~~~~#
 
-        L = L if not L is None else self.default_L
-        Nx = Nx if not Nx is None else self.default_Nx
+        L = L if L is not None else self.default_L
+        Nx = Nx if Nx is not None else self.default_Nx
         dx = 2 * L / Nx
 
-        xmax = xmax if not xmax is None else self.default_xmax
+        xmax = xmax if xmax is not None else self.default_xmax
 
-        tmax = tmax if not tmax is None else 2 * xmax / c_p
-        Nt = Nt if not Nt is None else self.default_Nt
+        tmax = tmax if tmax is not None else 2 * xmax / c_p
+        Nt = Nt if Nt is not None else self.default_Nt
 
         # ~~~~~~~~~~~~~~Experiment config~~~~~~~~~~~~~~#
 
-        depth = depth if not depth is None else self.default_depth
-        cavity_r = cavity_r if not cavity_r is None else self.default_cavity_r
+        depth = depth if depth is not None else self.default_depth
+        cavity_r = cavity_r if cavity_r is not None else self.default_cavity_r
 
         mirror_positions = (
             mirror_positions
-            if not mirror_positions is None
+            if mirror_positions is not None
             else self.default_mirror_positions
         )
         mirror_directions = (
             mirror_directions
-            if not mirror_directions is None
+            if mirror_directions is not None
             else self.default_mirror_directions
         )
         mirror_count = len(mirror_positions)
 
         point_source_positions = (
             point_source_positions
-            if not point_source_positions is None
+            if point_source_positions is not None
             else self.default_point_source_positions
         )
         source_count = len(point_source_positions) + 1
 
         # ~~~~~~~~~~~~~~Event parameters~~~~~~~~~~~~~~#
 
-        Awavemin = Awavemin if not Awavemin is None else self.default_Awavemin
-        Awavemax = Awavemax if not Awavemax is None else self.default_Awavemax
+        Awavemin = Awavemin if Awavemin is not None else self.default_Awavemin
+        Awavemax = Awavemax if Awavemax is not None else self.default_Awavemax
 
-        fmin = fmin if not fmin is None else self.default_fmin
-        fmax = fmax if not fmax is None else self.default_fmax
-        fmono = fmono if not fmono is None else self.default_fmono
+        fmin = fmin if fmin is not None else self.default_fmin
+        fmax = fmax if fmax is not None else self.default_fmax
+        fmono = fmono if fmono is not None else self.default_fmono
 
-        sigmafmin = sigmafmin if not sigmafmin is None else self.default_sigmafmin
-        sigmafmax = sigmafmax if not sigmafmax is None else self.default_sigmafmax
+        sigmafmin = sigmafmin if sigmafmin is not None else self.default_sigmafmin
+        sigmafmax = sigmafmax if sigmafmax is not None else self.default_sigmafmax
 
-        anisotropy = anisotropy if not anisotropy is None else self.default_anisotropy
+        anisotropy = anisotropy if anisotropy is not None else self.default_anisotropy
 
         # ~~~~~~~~~~~~~~Some Setting Checks~~~~~~~~~~~~~~#
 
@@ -585,7 +587,7 @@ class NewtonianNoiseDataGenerator:
         z3d = xyz[2]
 
         # integration constants from mirror geometry
-        r3d = torch.sqrt(x3d**2 + y3d**2 + z3d**2) + 1e-20
+        r3d = torch.sqrt(x3d**2 + y3d**2 + z3d**2) + _DISTANCE_EPSILON
         cavity_kernel = r3d < L
         cavity_kernel *= z3d < depth
 
@@ -598,15 +600,13 @@ class NewtonianNoiseDataGenerator:
                 torch.sqrt(
                     (x3d - pos[0]) ** 2 + (y3d - pos[1]) ** 2 + (z3d - pos[2]) ** 2
                 )
-                + 1e-20
+                + _DISTANCE_EPSILON
             )
             cavity_kernel *= r3ds[mirror] > cavity_r
             geo_facts[mirror] = (
                 (x3d - pos[0]) * di[0] + (y3d - pos[1]) * di[1] + (z3d - pos[2]) * di[2]
             ) / r3ds[mirror] ** 3
         for mirror in range(mirror_count):
-            if useGPU:
-                geo_facts[mirror].to(device=device)
             geo_facts[mirror] *= cavity_kernel
 
         # ~~~~~~~~~~~~~~Function definitions~~~~~~~~~~~~~~#
@@ -644,9 +644,6 @@ class NewtonianNoiseDataGenerator:
                     + (z3d - point_source_positions[sources[R] - 1][2]) ** 2
                 )
 
-            if useGPU:
-                kx3D.to(device=device)
-
             # force calculation
             for i, t in enumerate(time):
                 density_fluctuations = gaussian_wave_packet(
@@ -659,8 +656,6 @@ class NewtonianNoiseDataGenerator:
                     sin_const[R],
                     phases[R],
                 )
-                if useGPU:
-                    density_fluctuations.to(device=device)
                 for mirror in range(mirror_count):
                     forces[R][mirror][i] = calc_force(density_fluctuations, mirror)
 
@@ -912,50 +907,49 @@ class NewtonianNoiseDataGenerator:
         """
 
         # ~~~~~~~~~~~~~~Save management~~~~~~~~~~~~~~#
-        ID = ID if not ID is None else self.default_ID
-        folder = folder if not folder is None else self.default_folder
-        if not tag is None:
+        ID = ID if ID is not None else self.default_ID
+        folder = folder if folder is not None else self.default_folder
+        if tag is not None:
             self.loadFromSettingFile(tag, folder, ID)
         else:
             tag = self.default_tag
 
-        saveas = saveas if not saveas is None else self.default_saveas
+        saveas = saveas if saveas is not None else self.default_saveas
 
         # ~~~~~~~~~~~~~~General~~~~~~~~~~~~~~#
 
-        useGPU = useGPU if not useGPU is None else self.default_useGPU
-        NoR = NoR if not NoR is None else self.default_NoR
-        # randomSeed = randomSeed if not randomSeed==None else self.default_randomSeed
+        useGPU = useGPU if useGPU is not None else self.default_useGPU
+        NoR = NoR if NoR is not None else self.default_NoR
 
         # ~~~~~~~~~~~~~~Dataset Parameters~~~~~~~~~~~~~~#
 
-        state = state if not state is None else self.default_state
-        NoS = NoS if not NoS is None else self.default_NoS
+        state = state if state is not None else self.default_state
+        NoS = NoS if NoS is not None else self.default_NoS
 
-        freq = freq if not freq is None else self.default_freq
-        SNR = SNR if not SNR is None else self.default_SNR
-        p = p if not p is None else self.default_p
-        c_ratio = c_ratio if not c_ratio is None else self.default_c_ratio
+        freq = freq if freq is not None else self.default_freq
+        SNR = SNR if SNR is not None else self.default_SNR
+        p = p if p is not None else self.default_p
+        c_ratio = c_ratio if c_ratio is not None else self.default_c_ratio
 
         # ~~~~~~~~~~~~~~Window Parameters~~~~~~~~~~~~~~#
 
-        NoW = NoW if not NoW is None else self.default_NoW
-        NoT = NoT if not NoT is None else self.default_NoT
-        NoE = NoE if not NoE is None else self.default_NoE
+        NoW = NoW if NoW is not None else self.default_NoW
+        NoT = NoT if NoT is not None else self.default_NoT
+        NoE = NoE if NoE is not None else self.default_NoE
 
         time_window_multiplier = (
             time_window_multiplier
-            if not time_window_multiplier is None
+            if time_window_multiplier is not None
             else self.default_time_window_multiplier
         )
-        twindow = twindow if not twindow is None else self.default_twindow
+        twindow = twindow if twindow is not None else self.default_twindow
         randomlyPlaced = (
             randomlyPlaced
-            if not randomlyPlaced is None
+            if randomlyPlaced is not None
             else self.default_randomlyPlaced
         )
 
-        mirror_ID = mirror_ID if not mirror_ID is None else 0
+        mirror_ID = mirror_ID if mirror_ID is not None else 0
 
         #####################################
         # ~~~~~~~~~~~~~~Loading~~~~~~~~~~~~~~#
@@ -1032,70 +1026,34 @@ class NewtonianNoiseDataGenerator:
         all_bulk_forces = torch.tensor(all_bulk_forces, device=device)
 
         # wave events
-        all_polar_angles = torch.tensor(
-            np.load(
-                folder + "/wave_event_data_polar_angle_" + tag + ".npy", mmap_mode="r"
-            )[:NoR].copy(),
-            device=device,
-        )
-        all_azimuthal_angles = torch.tensor(
-            np.load(
-                folder + "/wave_event_data_azimuthal_angle_" + tag + ".npy",
-                mmap_mode="r",
-            )[:NoR].copy(),
-            device=device,
-        )
+        def load_wave_event_data(name):
+            """load a per-event data field saved by generateEventSet()"""
+            return torch.tensor(
+                np.load(
+                    folder + "/wave_event_data_" + name + "_" + tag + ".npy",
+                    mmap_mode="r",
+                )[:NoR].copy(),
+                device=device,
+            )
 
-        all_x0s = torch.tensor(
-            np.load(folder + "/wave_event_data_x0_" + tag + ".npy", mmap_mode="r")[
-                :NoR
-            ].copy(),
-            device=device,
-        )
-        all_t0s = torch.tensor(
-            np.load(folder + "/wave_event_data_t0_" + tag + ".npy", mmap_mode="r")[
-                :NoR
-            ].copy(),
-            device=device,
-        )
+        all_polar_angles = load_wave_event_data("polar_angle")
+        all_azimuthal_angles = load_wave_event_data("azimuthal_angle")
 
-        all_As = torch.tensor(
-            np.load(folder + "/wave_event_data_A_" + tag + ".npy", mmap_mode="r")[
-                :NoR
-            ].copy(),
-            device=device,
-        )
-        all_phases = torch.tensor(
-            np.load(folder + "/wave_event_data_phase_" + tag + ".npy", mmap_mode="r")[
-                :NoR
-            ].copy(),
-            device=device,
-        )
-        all_fs = torch.tensor(
-            np.load(folder + "/wave_event_data_f0_" + tag + ".npy", mmap_mode="r")[
-                :NoR
-            ].copy(),
-            device=device,
-        )
-        all_sigmafs = torch.tensor(
-            np.load(folder + "/wave_event_data_sigmaf_" + tag + ".npy", mmap_mode="r")[
-                :NoR
-            ].copy(),
-            device=device,
-        )
+        all_x0s = load_wave_event_data("x0")
+        all_t0s = load_wave_event_data("t0")
+
+        all_As = load_wave_event_data("A")
+        all_phases = load_wave_event_data("phase")
+        all_fs = load_wave_event_data("f0")
+        all_sigmafs = load_wave_event_data("sigmaf")
 
         # P and S
-        all_s_polarization = torch.tensor(
-            np.load(
-                folder + "/wave_event_data_s_polarization_" + tag + ".npy",
-                mmap_mode="r",
-            )[:NoR].copy(),
-            device=device,
-        )
+        all_s_polarization = load_wave_event_data("s_polarization")
 
         all_is_s = np.random.random(NoR) > p
         all_is_s = torch.tensor(all_is_s, device=device)
-        all_cs = c_p * (all_is_s == False) + c_s * all_is_s
+        all_is_p = ~all_is_s
+        all_cs = c_p * all_is_p + c_s * all_is_s
 
         # other preparations
         all_sin_polar = torch.sin(all_polar_angles)
@@ -1266,9 +1224,9 @@ class NewtonianNoiseDataGenerator:
             )
 
             # add P- and S-contributions
-            all_forces = (all_bulk_forces + all_p_cavern_forces) * (
-                all_is_s == False
-            ).reshape(NoR, 1, 1) + all_s_cavern_forces * (all_is_s).reshape(NoR, 1, 1)
+            all_forces = (all_bulk_forces + all_p_cavern_forces) * all_is_p.reshape(
+                NoR, 1, 1
+            ) + all_s_cavern_forces * (all_is_s).reshape(NoR, 1, 1)
 
             return all_forces
 
@@ -1380,7 +1338,7 @@ class NewtonianNoiseDataGenerator:
                 NoR, NoS, 1, Nt
             )
 
-            all_displacements = all_p_displacements * (all_is_s == False).reshape(
+            all_displacements = all_p_displacements * all_is_p.reshape(
                 NoR, 1, 1, 1
             ) + all_s_displacements * (all_is_s).reshape(NoR, 1, 1, 1)
 

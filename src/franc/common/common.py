@@ -6,6 +6,7 @@ import sys
 from typing import Any
 from collections.abc import Sequence
 import hashlib
+import inspect
 import platform
 import subprocess
 import struct
@@ -138,3 +139,21 @@ def hash_object_list_int(objects: Sequence) -> int:
     Will raise a TypeError if an input value has an unsupported type
     """
     return int.from_bytes(hash_object_list(objects), "big")
+
+
+def hash_class_file(cls: type, fallback_name: str) -> bytes:
+    """Calculate a hash value based on the file in which the given class was defined.
+
+    Falls back to hashing fallback_name (with a warning) if the source code cannot be
+    located, e.g. for classes defined interactively.
+    """
+    try:
+        with open(inspect.getfile(cls), "rb") as f:
+            script = f.read()
+    except TypeError:
+        try:
+            script = inspect.getsource(cls).encode()
+        except TypeError:
+            script = fallback_name.encode()
+            warnings.warn(f"Could not include source code in hash for {fallback_name}")
+    return hash_function(script)
