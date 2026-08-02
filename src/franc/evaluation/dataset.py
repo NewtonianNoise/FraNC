@@ -88,7 +88,7 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
         )
 
     @staticmethod
-    def _prepare_dataset(
+    def _prepare_dataset(  # pylint: disable=too-many-branches
         witness_inp: Sequence[Sequence[NDArrayF]],
         target_inp: Sequence[NDArrayF],
         signal_inp: Sequence[NDArrayF] | None = None,
@@ -122,17 +122,22 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
             checked_signals.append(("signal", signal))
 
         for input_name, input_data in checked_signals:
-            assert len(witness) > 0, "Creation of empty datasets is not allowed"
-            assert len(input_data) == len(
-                witness
-            ), f"Target and {input_name} data must hold same number of sequences"
+            if len(witness) == 0:
+                raise ValueError("Creation of empty datasets is not allowed")
+            if len(input_data) != len(witness):
+                raise ValueError(
+                    f"Target and {input_name} data must hold same number of sequences"
+                )
             for idx_sequence, (w, t) in enumerate(zip(witness, input_data)):
-                assert len(w) > 0, "Creation of empty datasets is not allowed"
+                if len(w) == 0:
+                    raise ValueError("Creation of empty datasets is not allowed")
 
                 for idx_channel, wi in enumerate(w):
-                    assert len(t) == len(
-                        wi
-                    ), f"Witness channel {idx_channel} in sequence {idx_sequence} has {len(wi)} length, but {input_name} has {len(t)}!"
+                    if len(t) != len(wi):
+                        raise ValueError(
+                            f"Witness channel {idx_channel} in sequence {idx_sequence} "
+                            f"has {len(wi)} length, but {input_name} has {len(t)}!"
+                        )
         return witness, target, signal
 
     @property

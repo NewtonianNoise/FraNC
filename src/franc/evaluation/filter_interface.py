@@ -210,18 +210,19 @@ class FilterInterface(abc.ABC):
 
         :return: data as (target, witness)
 
-        :raises: AssertionError
+        :raises: ValueError
         """
         target_npy = np.array(target)
         witness_npy = make_2d_array(witness)
-        assert (
-            witness_npy.shape[0] == self.n_channel
-        ), "witness data shape does not match configured channel count"
+        if witness_npy.shape[0] != self.n_channel:
+            raise ValueError(
+                "witness data shape does not match configured channel count"
+            )
 
-        if self.requires_apply_target:
-            assert (
-                target is None or target_npy.shape[0] == witness_npy.shape[1]
-            ), "Missmatch between target and witness data shapes"
+        if self.requires_apply_target and not (
+            target is None or target_npy.shape[0] == witness_npy.shape[1]
+        ):
+            raise ValueError("Missmatch between target and witness data shapes")
 
         return witness_npy, target_npy
 
@@ -252,29 +253,28 @@ class FilterInterface(abc.ABC):
 
         :return: data as (target, witness)
 
-        :raises: AssertionError
+        :raises: ValueError
         """
         witness_npy = [make_2d_array(w) for w in witness]
         for w in witness_npy:
-            assert (
-                w.shape[0] == self.n_channel
-            ), "witness data shape does not match configured channel count"
+            if w.shape[0] != self.n_channel:
+                raise ValueError(
+                    "witness data shape does not match configured channel count"
+                )
 
         if target is not None:
-            assert len(witness) == len(target)
+            if len(witness) != len(target):
+                raise ValueError("Witness and target hold a different sequence count")
             target_npy = [np.array(t) for t in target]
 
             for w, t in zip(witness_npy, target_npy):
-                assert (
-                    w.shape[1] == t.shape[0]
-                ), "Missmatch between target and witness data shapes"
+                if w.shape[1] != t.shape[0]:
+                    raise ValueError("Missmatch between target and witness data shapes")
         else:
             target_npy = None
 
-        if self.requires_apply_target:
-            assert (
-                target is not None
-            ), "This filter requires a target signal to be applied"
+        if self.requires_apply_target and target is None:
+            raise ValueError("This filter requires a target signal to be applied")
 
         return witness_npy, target_npy
 

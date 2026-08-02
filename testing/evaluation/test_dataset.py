@@ -106,16 +106,16 @@ class TestEvaluationDataset(unittest.TestCase):
         )
 
         self.assertRaises(
-            AssertionError, EvaluationDataset, 1.0, witness, [], witness, target
+            ValueError, EvaluationDataset, 1.0, witness, [], witness, target
         )
         self.assertRaises(
-            AssertionError, EvaluationDataset, 1.0, [], target, witness, target
+            ValueError, EvaluationDataset, 1.0, [], target, witness, target
         )
         self.assertRaises(
-            AssertionError, EvaluationDataset, 1.0, [[]], target, witness, target
+            ValueError, EvaluationDataset, 1.0, [[]], target, witness, target
         )
         self.assertRaises(
-            AssertionError,
+            ValueError,
             EvaluationDataset,
             1.0,
             [witness[0][:-1]],
@@ -125,16 +125,16 @@ class TestEvaluationDataset(unittest.TestCase):
         )
 
         self.assertRaises(
-            AssertionError, EvaluationDataset, 1.0, witness, target, witness, []
+            ValueError, EvaluationDataset, 1.0, witness, target, witness, []
         )
         self.assertRaises(
-            AssertionError, EvaluationDataset, 1.0, witness, target, [], target
+            ValueError, EvaluationDataset, 1.0, witness, target, [], target
         )
         self.assertRaises(
-            AssertionError, EvaluationDataset, 1.0, witness, target, [[]], target
+            ValueError, EvaluationDataset, 1.0, witness, target, [[]], target
         )
         self.assertRaises(
-            AssertionError,
+            ValueError,
             EvaluationDataset,
             1.0,
             witness,

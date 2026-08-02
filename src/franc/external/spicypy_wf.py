@@ -106,9 +106,8 @@ class SpicypyWienerFilter(FilterBase):
         :param sample_rate: The sample rate of the time series
         """
         witness, target = self.check_data_dimensions(witness, target)
-        assert (
-            self.n_filter <= target.shape[0]
-        ), "Input data must be at least one filter length"
+        if self.n_filter > target.shape[0]:
+            raise ValueError("Input data must be at least one filter length")
 
         witness, target = self.make_spicypy_time_series(witness, target, sample_rate)
         self.filter_state = spicypy.signal.WienerFilter(

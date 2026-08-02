@@ -47,12 +47,10 @@ def wf_calculate(
     """
     target_npy: NDArray = np.array(target)
     witness_npy: NDArray = make_2d_array(witness)
-    assert (
-        witness_npy.shape[1] == target_npy.shape[0]
-    ), "Missmatch between witness_npy and target_npy data shape"
-    assert (
-        n_filter <= target_npy.shape[0]
-    ), "Input data must be at least one filter length"
+    if witness_npy.shape[1] != target_npy.shape[0]:
+        raise ValueError("Missmatch between witness_npy and target_npy data shape")
+    if n_filter > target_npy.shape[0]:
+        raise ValueError("Input data must be at least one filter length")
 
     # calculate input autocorrelation and cross-correlation to target_npy
     # R_ws[channel, time]
@@ -125,9 +123,8 @@ def wf_apply(
     :return: prediction
     """
     witness_npy = make_2d_array(witness).astype(np.float64)
-    assert witness_npy.shape[1] >= len(
-        WFC[0]
-    ), "Input minimum lenght is one filter length"
+    if witness_npy.shape[1] < len(WFC[0]):
+        raise ValueError("Input minimum lenght is one filter length")
     return np.sum(
         [correlate(A, WF, mode="valid") for A, WF in zip(witness_npy, WFC)], axis=0
     )

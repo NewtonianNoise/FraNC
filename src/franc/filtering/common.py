@@ -26,11 +26,14 @@ class FilterBase(FilterInterface):
         self.n_filter = n_filter
         self.idx_target = idx_target
 
-        assert self.n_filter > 0, "n_filter must be a positive integer"
-        assert self.n_channel > 0, "n_filter must be a positive integer"
-        assert (
-            self.idx_target >= 0 and self.idx_target < self.n_filter
-        ), "idx_target must not be negative and smaller than n_filter"
+        if self.n_filter <= 0:
+            raise ValueError("n_filter must be a positive integer")
+        if self.n_channel <= 0:
+            raise ValueError("n_channel must be a positive integer")
+        if not 0 <= self.idx_target < self.n_filter:
+            raise ValueError(
+                "idx_target must not be negative and smaller than n_filter"
+            )
 
     @property
     def method_filename_part(self) -> str:
