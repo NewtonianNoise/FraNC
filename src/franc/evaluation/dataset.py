@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-import struct
 
 import numpy as np
 from numpy.typing import NDArray
@@ -189,7 +188,14 @@ class EvaluationDataset:  # pylint: disable=too-many-instance-attributes
     def hash_bytes(self) -> bytes:
         """return a hash over the dataset data as a bytes object"""
         # Python built-in hash() is randomly seeded, thus using a custom hash function is required
-        hashes = hash_function(struct.pack("d", self.sample_rate) + self.name.encode())
+        # hashing a dict includes the keys, so the values cannot run into each other
+        hashes = hash_object_list(
+            {
+                "sample_rate": self.sample_rate,
+                "name": self.name,
+                "target_unit": self.target_unit,
+            }
+        )
         hashes += self._hash_wts_data(
             self.witness_conditioning,
             self.target_conditioning,
