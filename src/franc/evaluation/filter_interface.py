@@ -174,7 +174,8 @@ class FilterInterface(abc.ABC):
         :param witness: Witness sensor data (1D or 2D array)
         :param target: Target sensor data (1D array)
         :param pad: if True, apply padding zeros so that the length matches the target signal
-        :param update_state: if True, the filter state will be changed. If false, the filter state will remain
+        :param update_state: if True, the filter state will be changed. If false, the filter state will remain.
+            Adaptive filters still adapt during the call, this only controls whether the result is kept
 
         :return: prediction
         """
