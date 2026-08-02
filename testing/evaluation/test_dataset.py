@@ -172,6 +172,7 @@ class TestEvaluationDataset(unittest.TestCase):
             [np.zeros(10)],
             [np.zeros(10)],
             "name",
+            "unit",
         ]
         base_hash = hash(EvaluationDataset(*base_parameters))
 
@@ -188,6 +189,7 @@ class TestEvaluationDataset(unittest.TestCase):
             [np.ones(10)],
             [np.ones(10)],
             "new_name",
+            "new_unit",
         ]
         for idx, new_value in enumerate(new_values):
             new_parameters = deepcopy(base_parameters)
