@@ -64,6 +64,26 @@ class TestTestDataGenerator(
         tdg = fnc.evaluation.TestDataGenerator(witness_noise_level=[1] * 3)
         self.assertIsInstance(tdg.dataset([10], [10]), fnc.evaluation.EvaluationDataset)
 
+    def test_signal_is_added_to_the_target(self):
+        """check that a generated signal is a component of the target"""
+
+        def generate(generate_signal):
+            # the seed makes both datasets share their witness and target noise,
+            # so the signal is the only possible difference
+            return fnc.evaluation.TestDataGenerator(
+                witness_noise_level=[0.1] * 2, rng_seed=0x51C4A1
+            ).dataset([400], [300], generate_signal=generate_signal)
+
+        without_signal = generate(False)
+        with_signal = generate(True)
+
+        for which in ["conditioning", "evaluation"]:
+            for t_with, t_without in zip(
+                getattr(with_signal, "target_" + which),
+                getattr(without_signal, "target_" + which),
+            ):
+                self.assertFalse(np.array_equal(t_with, t_without))
+
 
 # there is no tesing for the residual_power_ratio function, as it is indirectly tested through the amplitude wrapper
 class TestResidualAmplitudeRatio(unittest.TestCase):

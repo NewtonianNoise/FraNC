@@ -247,6 +247,10 @@ class TestDataGenerator:
 
         :param n_condition:  Sequence of integers indicating the number of conditioning samples generated per sample sequence
         :param n_evaluation: Number of evaluation samples
+        :param generate_signal: (Optional) If True, an uncorrelated signal is generated and
+            added to the target channels. The signal is not present in the witness channels,
+            so it cannot be predicted by a filter.
+        :param signal_amplitude: (Optional) Amplitude of the generated signal
         :param sample_rate: (Optional) Sample rate for the generate EvaluationDataset
         :param name: (Optional) Specify the name of the EvaluationDataset
 
@@ -261,8 +265,8 @@ class TestDataGenerator:
         if len(n_condition.shape) != 1 or len(n_evaluation.shape) != 1:
             raise ValueError("Parameters must be sequences of integers. ")
 
-        cond_data = self.generate_multiple(n_condition)
-        eval_data = self.generate_multiple(n_evaluation)
+        cond_witness, cond_target = self.generate_multiple(n_condition)
+        eval_witness, eval_target = self.generate_multiple(n_evaluation)
 
         if generate_signal:
             cond_signal = [
@@ -271,16 +275,20 @@ class TestDataGenerator:
             eval_signal = [
                 self.scaled_whitenoise(n) * signal_amplitude for n in n_evaluation
             ]
+
+            # The signal is a component of the target that is not visible in the witness
+            cond_target = [t + s for t, s in zip(cond_target, cond_signal)]
+            eval_target = [t + s for t, s in zip(eval_target, eval_signal)]
         else:
             cond_signal = None
             eval_signal = None
 
         return EvaluationDataset(
             sample_rate,
-            cond_data[0],
-            cond_data[1],
-            eval_data[0],
-            eval_data[1],
+            cond_witness,
+            cond_target,
+            eval_witness,
+            eval_target,
             cond_signal,
             eval_signal,
             name=name if name else "Unnamed",
