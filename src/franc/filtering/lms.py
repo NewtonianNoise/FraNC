@@ -113,10 +113,10 @@ class LMSFilter(FilterBase):
         self.step_scale = step_scale
         self.coefficient_clipping = coefficient_clipping
 
-        assert self.step_scale > 0, "Step scale must be positive"
-        assert (
-            np.isnan(self.coefficient_clipping) or self.coefficient_clipping > 0
-        ), "coefficient_clipping must be positive"
+        if self.step_scale <= 0:
+            raise ValueError("Step scale must be positive")
+        if not (np.isnan(self.coefficient_clipping) or self.coefficient_clipping > 0):
+            raise ValueError("coefficient_clipping must be positive")
 
         self.reset()
 

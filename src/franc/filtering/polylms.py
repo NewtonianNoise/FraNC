@@ -139,11 +139,12 @@ class PolynomialLMSFilter(FilterBase):
         self.coefficient_clipping = coefficient_clipping
         self.order = order
 
-        assert self.step_scale > 0, "Step scale must be positive"
-        assert (
-            np.isnan(self.coefficient_clipping) or self.coefficient_clipping > 0
-        ), "coefficient_clipping must be positive"
-        assert self.order > 0
+        if self.step_scale <= 0:
+            raise ValueError("Step scale must be positive")
+        if not (np.isnan(self.coefficient_clipping) or self.coefficient_clipping > 0):
+            raise ValueError("coefficient_clipping must be positive")
+        if self.order <= 0:
+            raise ValueError("order must be a positive integer")
 
         self.reset()
 
