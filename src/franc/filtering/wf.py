@@ -37,6 +37,7 @@ def wf_calculate(
     n_filter: int,
     idx_target: int = 0,
     inversion_method: str = "np_pinv",
+    regularization: float = 0.0,
 ) -> tuple[NDArray, bool]:
     """caluclate the FIR coefficients for a wiener filter
 
@@ -45,6 +46,9 @@ def wf_calculate(
     :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
     :param idx_target: offset of the prediction relative to the end of the array
     :param inversion_method: matrix inversion method used for filter coefficient calculation. Check WienerFilter class dock string for possible values
+    :param regularization: Tikhonov regularization strength added to the diagonal of the input
+        autocorrelation matrix before inversion. 0 disables regularization. Larger values trade
+        fit accuracy for a better conditioned, more stable filter
 
 
     :return: filter coefficients, full_rank (bool)
@@ -97,6 +101,9 @@ def wf_calculate(
         R_ww = np.block(
             [[calc_r_matrix(A, B, n_filter) for B in witness_npy] for A in witness_npy]
         )
+
+    if regularization:
+        R_ww = R_ww + regularization * np.eye(len(R_ww))
 
     # calculate pseudo-inverse correlation matrix of inputs and the filter coefficients
     # for some reason the scipy.linalg implementations were extremely slow on white noise test case => using numpy
@@ -163,6 +170,9 @@ class WienerFilter(FilterBase):
         'np_inv' np.linalg.inv()
         'sp_pinv' scipy.linalg.pinv()
         'sp_inv' scipy.linalg.inv()
+    :param regularization: Tikhonov regularization strength added to the diagonal of the input
+        autocorrelation matrix before inversion. 0 disables regularization. Larger values trade
+        fit accuracy for a better conditioned, more stable filter
 
     >>> import franc as fnc
     >>> n_filter = 128
@@ -182,6 +192,7 @@ class WienerFilter(FilterBase):
     filter_state: NDArray | None = None
     filter_name: str = "WF"
     inversion_method: str = "np_pinv"
+    regularization: float = 0.0
 
     @handle_from_dict
     def __init__(
@@ -190,10 +201,12 @@ class WienerFilter(FilterBase):
         n_filter: int,
         idx_target: int,
         inversion_method: str = "np_pinv",
+        regularization: float = 0.0,
     ):
         super().__init__(n_channel, n_filter, idx_target)
         self.requires_apply_target = False
         self.inversion_method = inversion_method
+        self.regularization = regularization
 
     def condition_multi_sequence(
         self,
@@ -219,6 +232,7 @@ class WienerFilter(FilterBase):
                 self.n_filter,
                 idx_target=self.idx_target,
                 inversion_method=self.inversion_method,
+                regularization=self.regularization,
             )
             full_rank &= full_rank_i
             filter_coefficients.append(fc * len(target_npy_i))

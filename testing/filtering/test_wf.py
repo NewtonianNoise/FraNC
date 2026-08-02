@@ -17,9 +17,10 @@ class TestWienerFilter(TestFilter.TestFilter[WienerFilter]):
         super().__init__(*args, **kwargs)
         test_configurations = [
             {"inversion_method": "np_pinv"},
-            {"inversion_method": "np_inv"},
+            {"inversion_method": "np_inv", "regularization": 1e-10},
             {"inversion_method": "sp_pinv"},
-            {"inversion_method": "sp_inv"},
+            {"inversion_method": "sp_inv", "regularization": 1e-10},
+            {"regularization": 1e-3},
         ]
         self.set_target(fnc.filtering.WienerFilter, test_configurations)
 
@@ -32,7 +33,21 @@ class TestWienerFilter(TestFilter.TestFilter[WienerFilter]):
         witness = [witness[0], witness[0]]
 
         for filt in self.instantiate_filters(n_channel=2, n_filter=n_filter):
-            self.assertWarns(RuntimeWarning, filt.condition, witness, target)
+            if filt.regularization == 0:
+                # with regularization on, we expect the warning to not appear
+                self.assertWarns(RuntimeWarning, filt.condition, witness, target)
+
+    def test_regularization_fixes_rank_deficiency(self):
+        """check that Tikhonov regularization resolves a rank-deficient autocorrelation matrix"""
+        n_filter = 128
+        witness, target = fnc.evaluation.TestDataGenerator([0.1]).generate(int(1e4))
+
+        # using two identical input datasets produces non-full-rank autocorrelation matrices
+        witness = [witness[0], witness[0]]
+
+        filt = fnc.filtering.WienerFilter(2, n_filter, 0, regularization=1e-2)
+        _, full_rank = filt.condition(witness, target)
+        self.assertTrue(full_rank)
 
     def test_impulse_response_recovery(self):
         """check that a known FIR response is recovered from a noiseless system"""
