@@ -43,8 +43,8 @@ def generate_wave_packet(
 
     >>> import franc
     >>> franc.eval.signal_generation.generate_wave_packet(400, 100, 1, 0.02, 0)
-    array([-2.49881816e-53,  1.67054194e-40,  3.81228489e-40, ...,
-           -1.79993484e-05, -8.54421912e-06, -1.88708852e-19],
+    array([-5.92739405e-57,  3.96265744e-44,  9.04304089e-44, ...,
+           -4.26958761e-09, -2.02675627e-09, -4.47632303e-23],
           shape=(2001,))
 
 
@@ -60,9 +60,12 @@ def generate_wave_packet(
     # Gaussian and normalization written separately
     # hull = np.exp(-((T / width) ** 2) / 2) / width / np.sqrt(2 * np.pi)
     # hull *= np.sqrt(width) * 2
-    hull = np.exp(-((T / width) ** 2) / 2) * np.sqrt(2 / np.pi / width)
+    hull = np.exp(-((T / width) ** 2) / 2)
     if peak_scaling:
-        hull /= hull[half_length]
+        # the hull peaks at one for T=0, the sinusoidal reaches np.sqrt(2)
+        hull /= np.sqrt(2)
+    else:
+        hull *= np.sqrt(2 / np.pi / width)
 
     return sinusoidal * hull * amplitude
 
