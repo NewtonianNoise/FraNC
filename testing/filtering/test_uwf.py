@@ -43,7 +43,7 @@ class TestUpdatingWienerFilter(TestFilter.TestFilter[UpdatingWienerFilter]):
         n_filter = 128
         witness, target = fnc.evaluation.TestDataGenerator([0.1]).generate(n_filter * 2)
 
-        for context_len in [0, 10000]:
+        for context_len in [0, 1, 10, 64, 127, 10000]:
             filt = self.target_filter(
                 n_channel=1, n_filter=n_filter, idx_target=0, context_pre=context_len
             )
