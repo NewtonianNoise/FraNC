@@ -182,10 +182,15 @@ class PolynomialLMSFilter(FilterBase):
     ) -> NDArray:
         """Apply the filter to input data
 
+        The filter keeps adapting to the target while it is applied, so the prediction
+        is not the output of a filter with a fixed state. This also happens for
+        update_state=False, which only restores the filter state after the call.
+
         :param witness: Witness sensor data
-        :param target: Target sensor data (is ignored)
+        :param target: Target sensor data, the filter adapts to it
         :param pad: if True, apply padding zeros so that the length matches the target signal
-        :param update_state: if True, the filter state will be changed. If false, the filter state will remain
+        :param update_state: if True, the adapted filter state is kept. If False, the
+            state from before the call is restored, but the prediction adapted either way
 
         :return: prediction
         """
