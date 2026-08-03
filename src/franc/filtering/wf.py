@@ -41,10 +41,7 @@ def wf_calculate_correlations(
     for a single witness/target sequence pair
 
     Statistics of multiple sequences can be combined by summing R_ws and R_ww of each
-    sequence before solving the resulting equations with wf_solve(). Since correlate()
-    sums rather than averages over time, this naturally weights each sequence by its
-    length and is equivalent to (but numerically better behaved than) concatenating the
-    sequences.
+    sequence before solving the resulting equations with wf_solve().
 
     :param witness: Witness sensor data
     :param target: Target sensor data
@@ -105,27 +102,22 @@ def wf_calculate_correlations(
     return R_ws, R_ww
 
 
-def wf_solve(
-    R_ws: Sequence | NDArray,
+def invert_R_ww(
     R_ww: Sequence | NDArray,
-    n_filter: int,
-    n_channel: int,
     inversion_method: str = "np_pinv",
     regularization: float = 0.0,
 ) -> tuple[NDArray, bool]:
-    """solve the Wiener-Hopf equations R_ww @ w = R_ws for the FIR filter coefficients
+    """invert an auto-correlation matrix of the Wiener-Hopf equations, as computed by
+    wf_calculate_correlations() or bwf_calculate_correlations()
 
-    :param R_ws: cross-correlation vector, as returned by wf_calculate_correlations()
-    :param R_ww: auto-correlation matrix, as returned by wf_calculate_correlations()
-        (or the sum of several, when pooling statistics of multiple sequences)
-    :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
-    :param n_channel: Number of witness sensor channels
+    :param R_ww: auto-correlation matrix (or the sum of several, when pooling statistics
+        of multiple sequences)
     :param inversion_method: matrix inversion method used for filter coefficient calculation. Check WienerFilter class dock string for possible values
     :param regularization: Tikhonov regularization strength added to the diagonal of the input
         autocorrelation matrix before inversion. 0 disables regularization. Larger values trade
         fit accuracy for a better conditioned, more stable filter
 
-    :return: filter coefficients, full_rank (bool)
+    :return: inverted auto-correlation matrix, full_rank (bool)
     """
     R_ww = np.array(R_ww)
 
@@ -153,6 +145,33 @@ def wf_solve(
         )
         print(R_ww)
         raise e
+
+    return R_ww_inv, full_rank
+
+
+def wf_solve(
+    R_ws: Sequence | NDArray,
+    R_ww: Sequence | NDArray,
+    n_filter: int,
+    n_channel: int,
+    inversion_method: str = "np_pinv",
+    regularization: float = 0.0,
+) -> tuple[NDArray, bool]:
+    """solve the Wiener-Hopf equations R_ww @ w = R_ws for the FIR filter coefficients
+
+    :param R_ws: cross-correlation vector, as returned by wf_calculate_correlations()
+    :param R_ww: auto-correlation matrix, as returned by wf_calculate_correlations()
+        (or the sum of several, when pooling statistics of multiple sequences)
+    :param n_filter: Length of the FIR filter (how many samples are in the input window per output sample)
+    :param n_channel: Number of witness sensor channels
+    :param inversion_method: matrix inversion method used for filter coefficient calculation. Check WienerFilter class dock string for possible values
+    :param regularization: Tikhonov regularization strength added to the diagonal of the input
+        autocorrelation matrix before inversion. 0 disables regularization. Larger values trade
+        fit accuracy for a better conditioned, more stable filter
+
+    :return: filter coefficients, full_rank (bool)
+    """
+    R_ww_inv, full_rank = invert_R_ww(R_ww, inversion_method, regularization)
     WFC = R_ww_inv.dot(np.array(R_ws))
 
     # unwrap into seperate FIR filters

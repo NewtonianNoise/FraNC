@@ -2,6 +2,7 @@
 
 from .common import FilterBase
 from .wf import WienerFilter
+from .bwf import BlockWienerFilter
 from .uwf import UpdatingWienerFilter
 from .lms import LMSFilter
 from .polylms import PolynomialLMSFilter
@@ -11,6 +12,7 @@ from .bypass import BypassFilter
 all_filters = [
     FilterBase,
     WienerFilter,
+    BlockWienerFilter,
     UpdatingWienerFilter,
     LMSFilter,
     PolynomialLMSFilter,
@@ -19,6 +21,7 @@ all_filters = [
 __all__ = [
     "FilterBase",
     "WienerFilter",
+    "BlockWienerFilter",
     "UpdatingWienerFilter",
     "LMSFilter",
     "PolynomialLMSFilter",
