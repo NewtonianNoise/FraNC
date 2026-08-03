@@ -294,6 +294,90 @@ class TestSpectrogramMetric(TestEvaluationMetric.TestEvaluationMetric):
         )
 
 
+class TestBlockPositionMetric(TestEvaluationMetric.TestEvaluationMetric):
+    """Tests for BlockPositionMetric"""
+
+    __test__ = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.set_tested_metric(
+            fnc.evaluation.BlockPositionMetric,
+            [
+                {"block_size": 16},
+                {"block_size": 16, "mode": "sqrt_ratio"},
+                {"block_size": 16, "mode": "rms"},
+                {"block_size": 16, "offset": 5},
+                {"block_size": 16, "offset": [5]},
+            ],
+        )
+
+    def test_invalid_block_size_raises(self):
+        """block_size must be a positive integer"""
+        self.assertRaises(ValueError, self.tested_metric, block_size=0)
+
+    def test_invalid_mode_raises(self):
+        """mode must be one of the supported statistics"""
+        self.assertRaises(ValueError, self.tested_metric, block_size=4, mode="bogus")
+
+    def test_offset_length_mismatch_raises(self):
+        """a per-sequence offset list must match the number of sequences"""
+        metric = self.tested_metric(block_size=4, offset=[0, 0]).apply(
+            test_prediction, test_dataset
+        )
+        self.assertRaises(ValueError, metric.result_full)
+
+    def test_block_size_larger_than_every_sequence_raises(self):
+        """no full block can be formed if block_size exceeds every sequence length"""
+        metric = self.tested_metric(block_size=N_TEST_DATASET * 2).apply(
+            test_prediction, test_dataset
+        )
+        self.assertRaises(ValueError, metric.result_full)
+
+    def test_ratio_modes_match_expected_values(self):
+        """ratio, sqrt_ratio and rms use the (target - signal) reference and match by hand
+
+        residual = target - signal - prediction = 5 - 2 - 1 = 2 everywhere,
+        pre-filter power = (target - signal)^2 = 3^2 = 9 everywhere
+        """
+        cases = {"ratio": 4.0 / 9.0, "sqrt_ratio": 2.0 / 3.0, "rms": 2.0}
+        for mode, expected in cases.items():
+            metric = self.tested_metric(block_size=2, mode=mode).apply(
+                test_dataset_signal_prediction, test_dataset_signal
+            )
+            per_position, _, overall = metric.result_full()
+            np.testing.assert_allclose(per_position, [expected, expected])
+            self.assertAlmostEqual(overall, expected)
+
+    def test_position_dependent_statistic(self):
+        """the per-position statistic tracks a residual that varies within the block"""
+        target = np.arange(10.0) + 100
+        residual_values = np.arange(10.0)
+        prediction = target - residual_values
+
+        dataset = fnc.evaluation.EvaluationDataset(
+            sample_rate=1.0,
+            witness_conditioning=[[np.zeros(10)]],
+            target_conditioning=[np.zeros(10)],
+            witness_evaluation=[[np.zeros(10)]],
+            target_evaluation=[target],
+        )
+
+        # offset=1 skips residual[0]; [1..9] tiles into blocks [1,2,3],[4,5,6],[7,8,9]
+        metric = self.tested_metric(block_size=3, offset=1, mode="rms").apply(
+            [prediction], dataset
+        )
+        per_position, positions, _ = metric.result_full()
+
+        expected = [
+            np.sqrt(np.mean(np.square([1, 4, 7]))),
+            np.sqrt(np.mean(np.square([2, 5, 8]))),
+            np.sqrt(np.mean(np.square([3, 6, 9]))),
+        ]
+        np.testing.assert_allclose(per_position, expected)
+        np.testing.assert_array_equal(positions, [0, 1, 2])
+
+
 class TestMetricHashing(unittest.TestCase):
     """Tests for the metric hash values"""
 

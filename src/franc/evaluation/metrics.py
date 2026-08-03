@@ -766,3 +766,161 @@ class SpectrogramMetric(EvaluationMetricPlottable):
         for section in self.residual:
             x_marker += len(section) / self.dataset.sample_rate
             plt.axvline(x_marker, c="k")
+
+
+class BlockPositionMetric(EvaluationMetricPlottable):
+    """Average residual statistic as a function of position within fixed-size blocks
+
+    Each sequence is split into non-overlapping blocks of `block_size` samples, after
+    skipping the first `offset` samples of that sequence; a trailing partial block is
+    dropped. The requested statistic is then computed independently for every position
+    within a block, averaged over all blocks contributing to that position (pooled
+    across all sequences). This is primarily useful to visualize the block-boundary
+    behavior of BlockWienerFilter, but works for the residual of any filter.
+
+    :param block_size: Number of samples per block
+    :param offset: Number of samples skipped at the start of each sequence before block
+        tiling begins. Either a single integer (applied to every sequence) or a
+        sequence of integers, one per sequence in the dataset
+    :param mode: The statistic to compute at each position
+        'rms' residual RMS
+        'ratio' residual power ratio: mean(residual^2) / mean(pre-filter^2), both
+            restricted to that position (pre-filter is target minus signal, if a
+            signal is present, else target)
+        'sqrt_ratio' square root of 'ratio'
+    """
+
+    name = "Block-position residual"
+
+    def __init__(
+        self,
+        block_size: int,
+        offset: int | Sequence[int] = 0,
+        mode: str = "ratio",
+    ):
+        super().__init__(block_size=block_size, offset=offset, mode=mode)
+
+        if block_size <= 0:
+            raise ValueError("block_size must be a positive integer")
+        if mode not in ("rms", "ratio", "sqrt_ratio"):
+            raise ValueError(f"Undefined mode value {mode}")
+
+        self.block_size = block_size
+        self.offset = offset
+        self.mode = mode
+
+        self.name = f"Block-position residual ({mode})"
+
+    def _offsets(self) -> list[int]:
+        """resolve the offset parameter into a per-sequence list of offsets"""
+        n_sequences = len(self.dataset.target_evaluation)
+        if isinstance(self.offset, int):
+            offsets = [self.offset] * n_sequences
+        else:
+            offsets = list(self.offset)
+            if len(offsets) != n_sequences:
+                raise ValueError(
+                    "offset must be a single integer or one value per sequence"
+                )
+
+        if any(o < 0 for o in offsets):
+            raise ValueError("offset must not be negative")
+        return offsets
+
+    def _pre_filter_sequences(self) -> list[NDArray]:
+        """the pre-filter reference signal: target, or target minus signal if available"""
+        if self.dataset.signal_evaluation is not None:
+            return [
+                t - s
+                for t, s in zip(
+                    self.dataset.target_evaluation, self.dataset.signal_evaluation
+                )
+            ]
+        return list(self.dataset.target_evaluation)
+
+    def _block_matrices(self) -> tuple[NDArray, NDArray]:
+        """residual and pre-filter samples, reshaped into (n_blocks_total, block_size)
+
+        Blocks are tiled independently per sequence, starting after that sequence's
+        offset; trailing samples that do not fill a whole block are dropped.
+        """
+        residual_blocks = []
+        pre_filter_blocks = []
+        for residual, pre_filter, offset in zip(
+            self.residual, self._pre_filter_sequences(), self._offsets()
+        ):
+            usable_residual = residual[offset:]
+            usable_pre_filter = pre_filter[offset:]
+            n_blocks = len(usable_residual) // self.block_size
+            if n_blocks == 0:
+                continue
+
+            n_samples = n_blocks * self.block_size
+            residual_blocks.append(
+                usable_residual[:n_samples].reshape(n_blocks, self.block_size)
+            )
+            pre_filter_blocks.append(
+                usable_pre_filter[:n_samples].reshape(n_blocks, self.block_size)
+            )
+
+        if not residual_blocks:
+            raise ValueError(
+                "No sequence is long enough to contain a full block after applying its offset."
+            )
+
+        return np.concatenate(residual_blocks, axis=0), np.concatenate(
+            pre_filter_blocks, axis=0
+        )
+
+    def _statistic(
+        self,
+        residual_power: NDArray | np.floating,
+        pre_filter_power: NDArray | np.floating,
+    ) -> NDArray | np.floating:
+        """apply the configured mode to mean squared residual/pre-filter values"""
+        if self.mode == "rms":
+            return np.sqrt(residual_power)
+        ratio = residual_power / pre_filter_power
+        if self.mode == "sqrt_ratio":
+            return np.sqrt(ratio)
+        return ratio
+
+    @EvaluationMetric.result_full_wrapper
+    def result_full(self) -> tuple[NDArray, NDArray, np.floating | float]:
+        """
+        :return: per-position statistic, position indices, overall (non-positional) statistic
+        """
+        residual_blocks, pre_filter_blocks = self._block_matrices()
+
+        per_position = np.asarray(
+            self._statistic(
+                np.mean(np.square(residual_blocks), axis=0),
+                np.mean(np.square(pre_filter_blocks), axis=0),
+            )
+        )
+        overall = float(
+            self._statistic(
+                np.mean(np.square(residual_blocks)),
+                np.mean(np.square(pre_filter_blocks)),
+            )
+        )
+
+        return per_position, np.arange(self.block_size), overall
+
+    def _ylabel(self) -> str:
+        if self.mode == "rms":
+            return f"Residual RMS [{self.unit}]"
+        if self.mode == "ratio":
+            return "Residual power ratio R"
+        return "Residual amplitude ratio √R"
+
+    def plot(self, ax: Axes):
+        """Plot to the given Axes object"""
+        per_position, positions, overall = self.result_full()
+
+        ax.plot(positions, per_position, marker="o", label=self.mode)
+        ax.axhline(overall, ls="--", c="k", label="Overall")
+
+        ax.set_xlabel("Position within block [samples]")
+        ax.set_ylabel(self._ylabel())
+        ax.legend()
