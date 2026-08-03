@@ -13,6 +13,8 @@ from franc.evaluation.report_generation import HTMLReport
 
 from ..toolbox import calc_mean_asd
 
+RNG_SEED = 113510
+
 
 class TestTestDataGenerator(
     unittest.TestCase
@@ -83,6 +85,82 @@ class TestTestDataGenerator(
                 getattr(without_signal, "target_" + which),
             ):
                 self.assertFalse(np.array_equal(t_with, t_without))
+
+    def test_lowpass_none_matches_default(self):
+        """lowpass_corner_frequency=None must reproduce the unfiltered default exactly"""
+        kwargs = {"witness_noise_level": [0.1, 0.2], "rng_seed": RNG_SEED}
+        default = fnc.evaluation.TestDataGenerator(**kwargs)
+        explicit_none = fnc.evaluation.TestDataGenerator(
+            **kwargs, lowpass_corner_frequency=None
+        )
+
+        w1, t1 = default.generate(500)
+        w2, t2 = explicit_none.generate(500)
+
+        np.testing.assert_array_equal(w1, w2)
+        np.testing.assert_array_equal(t1, t2)
+
+    def test_lowpass_corner_frequency_validation(self):
+        """invalid corner frequencies must raise ValueError"""
+        # sample_rate defaults to 1.0, so the nyquist frequency is 0.5
+        for bad_frequency in [0, -1.0, 0.5, 1.0]:
+            with self.assertRaises(ValueError):
+                fnc.evaluation.TestDataGenerator(lowpass_corner_frequency=bad_frequency)
+
+    def test_lowpass_deterministic_with_seed(self):
+        """filtered output must be reproducible for a fixed rng_seed"""
+
+        def make():
+            return fnc.evaluation.TestDataGenerator(
+                witness_noise_level=[0.1],
+                rng_seed=RNG_SEED,
+                lowpass_corner_frequency=5.0,
+                sample_rate=100.0,
+            ).generate(1000)
+
+        w1, t1 = make()
+        w2, t2 = make()
+
+        np.testing.assert_array_equal(w1, w2)
+        np.testing.assert_array_equal(t1, t2)
+
+    def test_lowpass_only_affects_witness(self):
+        """the target's correlated noise must stay flat even when the witness's is filtered"""
+        sample_rate = 1000.0
+
+        tdg = fnc.evaluation.TestDataGenerator(
+            witness_noise_level=0,
+            target_noise_level=0,
+            sample_rate=sample_rate,
+            lowpass_corner_frequency=10.0,
+            rng_seed=RNG_SEED,
+        )
+        witness, target = tdg.generate(int(5e5))
+        nperseg = 8192  # finer frequency resolution, to resolve the narrow bands below
+
+        # the target must stay flat both below and well above the corner frequency
+        self.assertAlmostEqual(
+            calc_mean_asd(target, sample_rate, f_band=(1.0, 3.0), nperseg=nperseg),
+            1.0,
+            places=1,
+        )
+        self.assertAlmostEqual(
+            calc_mean_asd(target, sample_rate, f_band=(100.0, 300.0), nperseg=nperseg),
+            1.0,
+            places=1,
+        )
+
+        # the witness must roll off well above the corner frequency
+        witness_asd_below = calc_mean_asd(
+            witness[0], sample_rate, f_band=(1.0, 3.0), nperseg=nperseg
+        )
+        witness_asd_above = calc_mean_asd(
+            witness[0], sample_rate, f_band=(100.0, 300.0), nperseg=nperseg
+        )
+        self.assertAlmostEqual(witness_asd_below, 1.0, places=1)
+        # 1st-order roll-off: ~-20 dB/decade, i.e. roughly a 10x drop per decade;
+        # from the ~10 Hz corner to the 100-300 Hz band, expect at least a 5x drop
+        self.assertLess(witness_asd_above, witness_asd_below / 5)
 
 
 # there is no tesing for the residual_power_ratio function, as it is indirectly tested through the amplitude wrapper

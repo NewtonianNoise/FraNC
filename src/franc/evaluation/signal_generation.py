@@ -8,6 +8,7 @@ from collections.abc import Sequence
 import numpy as np
 from numpy.typing import NDArray
 import numba
+from scipy.signal import butter, lfilter
 
 from .dataset import EvaluationDataset
 
@@ -141,7 +142,7 @@ def generate_wave_packet_signal(
     return (sequence[padding:-padding], packet_properties)
 
 
-class TestDataGenerator:
+class TestDataGenerator:  # pylint: disable=too-many-instance-attributes
     """Generate simple test data for correlated noise mitigation techniques
     The channel count is implicitly defined by the shape of witness_noise_level
 
@@ -151,10 +152,12 @@ class TestDataGenerator:
                 Scalar or 1D-vector for multiple sensors
                 to the correlated noise in the target sensor
     :param transfer_function: Ratio between the amplitude in the target and witness signals
-    :param sample_rate: The outputs are referenced
-                to an ASD of 1/sqrt(Hz) if a sample rate is provided
+    :param sample_rate: Sample rate for the generated datasets
     :param rng_seed: Optional value to generate the dataset based on a fixed seed for reproducible results.
                 If not set, the randomly seeded global numpy rng is used.
+    :param lowpass_corner_frequency: If set, model witness sensors with limited bandwidth
+                (transfer function is a first order low-pass filter)
+                The float value sets the corner frequency
 
     >>> import franc as fnc
     >>> # create data with two witness sensors with relative noise amplitudes of 0.1
@@ -175,6 +178,7 @@ class TestDataGenerator:
         transfer_function: float = 1,
         sample_rate: float = 1.0,
         rng_seed: int | None = None,
+        lowpass_corner_frequency: float | None = None,
     ):
         self.witness_noise_level = np.array(witness_noise_level)
         self.target_noise_level = np.array(target_noise_level)
@@ -196,6 +200,29 @@ class TestDataGenerator:
         assert len(self.transfer_function.shape) == 0
         assert self.sample_rate > 0
 
+        self.lowpass_corner_frequency = lowpass_corner_frequency
+        if lowpass_corner_frequency is None:
+            self._lowpass_b = None
+            self._lowpass_a = None
+            self._lowpass_warmup_samples = 0
+        else:
+            nyquist = self.sample_rate / 2
+            if not 0 < lowpass_corner_frequency < nyquist:
+                raise ValueError(
+                    "lowpass_corner_frequency must satisfy "
+                    f"0 < lowpass_corner_frequency < sample_rate / 2 ({nyquist}), "
+                    f"got {lowpass_corner_frequency}"
+                )
+            self._lowpass_b, self._lowpass_a = butter(
+                1, lowpass_corner_frequency, fs=self.sample_rate
+            )
+
+            # skip the first 10 time constants woth of data from the low-pass-filter
+            tau = 1 / (2 * np.pi * lowpass_corner_frequency)
+            self._lowpass_warmup_samples = max(
+                1, int(np.ceil(10 * tau * self.sample_rate))
+            )
+
     def scaled_whitenoise(self, shape) -> NDArrayF:
         """Generate white noise with an ASD of one
 
@@ -205,6 +232,24 @@ class TestDataGenerator:
         """
         return self.rng.normal(0, np.sqrt(self.sample_rate / 2), shape)
 
+    def _correlated_noise(self, n: int) -> tuple[NDArrayF, NDArrayF]:
+        """Generate the true correlated noise and the witness's (possibly low-pass
+        filtered) view of that same underlying noise.
+
+        :param n: number of samples requested
+
+        :return: true correlated noise seen by the target, correlated noise as seen by
+            the witness (low-pass filtered if configured)
+        """
+        if self.lowpass_corner_frequency is None:
+            t_c = self.scaled_whitenoise(n)
+            return t_c, t_c
+
+        raw = self.scaled_whitenoise(n + self._lowpass_warmup_samples)
+        filtered = lfilter(self._lowpass_b, self._lowpass_a, raw)
+        warmup = self._lowpass_warmup_samples
+        return raw[warmup:], filtered[warmup:]
+
     def generate(self, n: int) -> tuple[NDArrayF, NDArrayF]:
         """Generate sequences of samples
 
@@ -212,14 +257,14 @@ class TestDataGenerator:
 
         :return: witness signal, target signal
         """
-        t_c = self.scaled_whitenoise(n)
+        t_c, t_c_witness = self._correlated_noise(n)
         w_n = (
             self.scaled_whitenoise((len(self.witness_noise_level), n))
             * self.witness_noise_level[:, None]
         )
         t_n = self.scaled_whitenoise(n) * self.target_noise_level
 
-        return (t_c + w_n) * self.transfer_function, (t_c + t_n)
+        return (t_c_witness + w_n) * self.transfer_function, (t_c + t_n)
 
     def generate_multiple(
         self, n: Sequence[int] | NDArrayU
