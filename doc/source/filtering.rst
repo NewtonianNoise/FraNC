@@ -9,6 +9,7 @@ Built-in filtering techniques
 **Static:**
 
 * Wiener Filter (WF)
+* Block-wise Wiener Filter (BWF)
 
 **Adaptive:**
 
