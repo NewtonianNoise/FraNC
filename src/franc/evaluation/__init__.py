@@ -15,6 +15,7 @@ from .metrics import (
     ASDMetric,
     TimeSeriesMetric,
     SpectrogramMetric,
+    BlockPositionMetric,
 )
 from .evaluation import (
     EvaluationRun,
@@ -44,6 +45,7 @@ __all__ = [
     "ASDMetric",
     "TimeSeriesMetric",
     "SpectrogramMetric",
+    "BlockPositionMetric",
     "EvaluationRun",
     "TestDataGenerator",
     "residual_power_ratio",
