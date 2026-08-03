@@ -47,6 +47,7 @@ def measure_runtime(
     idx_target: int = 0,
     additional_filter_settings: Sequence[dict[str, Any]] | None = None,
     repititions: int = 1,
+    rng_seed: int | None = None,
 ) -> tuple[Sequence, Sequence]:
     """Measure the runtime of filers for a specific scenario
     Be aware that this gives no feedback upon how much multithreading is used!
@@ -57,6 +58,7 @@ def measure_runtime(
     :param idx_target: Position of the prediction
     :param additional_filter_settings: optional settings passed to the filters
     :param repititions: how many repititions to perform during the timing measurement
+    :param rng_seed: Optional seed for reproducible test data generation
 
     :return: (time_conditioning, time_apply) each in seconds
     """
@@ -66,7 +68,9 @@ def measure_runtime(
     additional_filter_settings = list(additional_filter_settings)
     assert len(additional_filter_settings) == len(filter_classes)
 
-    witness, target = TestDataGenerator([0.1] * n_channel).generate(n_samples)
+    witness, target = TestDataGenerator([0.1] * n_channel, rng_seed=rng_seed).generate(
+        n_samples
+    )
 
     times_conditioning = []
     times_apply = []
