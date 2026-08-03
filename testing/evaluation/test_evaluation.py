@@ -202,13 +202,13 @@ class TestMeasureRuntime(unittest.TestCase):
     def test_causality(self):
         """check that results follow basic expectations"""
         result_100 = fnc.evaluation.measure_runtime(
-            [fnc.filtering.WienerFilter], n_samples=int(1e4)
+            [fnc.filtering.WienerFilter], n_samples=int(1e4), rng_seed=0
         )
         result_1000 = fnc.evaluation.measure_runtime(
-            [fnc.filtering.WienerFilter], n_samples=int(1e5), repititions=2
+            [fnc.filtering.WienerFilter], n_samples=int(1e5), repititions=2, rng_seed=0
         )
         result_1000_repeated = fnc.evaluation.measure_runtime(
-            [fnc.filtering.WienerFilter], n_samples=int(1e5), repititions=4
+            [fnc.filtering.WienerFilter], n_samples=int(1e5), repititions=4, rng_seed=0
         )
 
         self.assertLess(result_100[1][0], result_1000[1][0])
